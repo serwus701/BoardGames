@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
-import uuid
 
 from app.database import get_db
 from app.models.game_queue import GameQueueItem
@@ -30,7 +29,6 @@ async def add_to_queue(
     max_position = db.query(GameQueueItem).count()
 
     db_item = GameQueueItem(
-        id=f"queue-{uuid.uuid4().hex[:8]}",
         game_instance_id=queue_item.game_instance_id,
         game_id=queue_item.game_id,
         added_by_user_id=current_user.id,
@@ -63,7 +61,7 @@ async def reorder_queue(
 
 @router.delete("/{queue_item_id}", status_code=204)
 async def remove_from_queue(
-    queue_item_id: str,
+    queue_item_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):

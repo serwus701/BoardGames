@@ -6,11 +6,14 @@ from app.database import Base
 class BoardGame(Base):
     __tablename__ = "board_games"
 
-    id = Column(String, primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String, nullable=False, index=True)
     description = Column(String, nullable=True)
     length_in_minutes = Column(Integer, nullable=True)
-    valid_player_counts = Column(JSON, nullable=False)  # Store as JSON array [1, 3, 4, 6]
+    player_count_type = Column(String, nullable=False, default='specific')  # 'specific', 'range', 'minimum'
+    min_players = Column(Integer, nullable=True)  # For 'range' and 'minimum' types
+    max_players = Column(Integer, nullable=True)  # For 'range' type only
+    valid_player_counts = Column(JSON, nullable=True)  # For 'specific' type only [1, 3, 4, 6]
     created_at = Column(DateTime, server_default=func.now())
 
     # Relationships
@@ -24,11 +27,14 @@ class BoardGame(Base):
 class CustomGame(Base):
     __tablename__ = "custom_games"
 
-    id = Column(String, primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String, nullable=False, index=True)
-    valid_player_counts = Column(JSON, nullable=False)  # Store as JSON array
+    player_count_type = Column(String, nullable=False, default='specific')  # 'specific', 'range', 'minimum'
+    min_players = Column(Integer, nullable=True)  # For 'range' and 'minimum' types
+    max_players = Column(Integer, nullable=True)  # For 'range' type only
+    valid_player_counts = Column(JSON, nullable=True)  # For 'specific' type only
     length_in_minutes = Column(Integer, nullable=True)
-    creator_id = Column(String, ForeignKey("users.id"), nullable=False)
+    creator_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 

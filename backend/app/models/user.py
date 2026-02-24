@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, DateTime, func
+from sqlalchemy import Column, String, DateTime, func, Integer
 from sqlalchemy.orm import relationship
 from app.database import Base
 
@@ -6,7 +6,7 @@ from app.database import Base
 class User(Base):
     __tablename__ = "users"
 
-    id = Column(String, primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String, nullable=False)
     email = Column(String, unique=True, nullable=False, index=True)
     password_hash = Column(String, nullable=False)
@@ -21,6 +21,7 @@ class User(Base):
     custom_games = relationship("CustomGame", back_populates="creator", foreign_keys="CustomGame.creator_id")
     shared_game_instances = relationship("SharedGameInstance", back_populates="contributor", foreign_keys="SharedGameInstance.contributor_id")
     events = relationship("Event", back_populates="organizer", foreign_keys="Event.organizer_id")
+    event_registrations = relationship("EventRegistration", back_populates="user", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<User {self.name}>"

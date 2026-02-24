@@ -1,3 +1,14 @@
+"""
+Legacy Flask demo app (moved aside).
+
+This file was the old Flask-based API that used different routes
+and ports (e.g. `/api/board-games` on port 5001). It conflicted with
+the FastAPI app in `run.py` which provides the actual backend used by
+the frontend (`http://localhost:8000` with `/games/...` endpoints).
+
+Kept here for reference. Do not run this file; run `python run.py` instead.
+"""
+
 from datetime import date
 import os
 
@@ -213,7 +224,5 @@ def serialize_event(event: Event) -> dict:
     }
 
 
-app = create_app()
-
 if __name__ == "__main__":
-    app.run(debug=True, port=5001)
+    print("This is a legacy Flask app kept for reference. Run `python run.py` to start the FastAPI server on port 8000.")

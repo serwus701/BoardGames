@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
-import uuid
 
 from app.database import get_db
 from app.models.game import BoardGame, CustomGame
@@ -11,6 +10,7 @@ from app.schemas.game import (
     BoardGameCreate, BoardGameResponse,
     CustomGameCreate, CustomGameUpdate, CustomGameResponse
 )
+from app.schemas.game import BoardGameUpdate
 from app.utils.auth import get_current_user
 
 router = APIRouter(prefix="/games", tags=["games"])
@@ -55,12 +55,12 @@ async def create_custom_game(
 ):
     """Create a new custom game."""
     db_game = CustomGame(
-        id=f"custom-{uuid.uuid4().hex[:8]}",
         name=game.name,
         valid_player_counts=game.valid_player_counts,
         length_in_minutes=game.length_in_minutes,
         creator_id=current_user.id
     )
+    print(db.query(CustomGame).count())
     db.add(db_game)
     db.commit()
     db.refresh(db_game)
@@ -68,7 +68,7 @@ async def create_custom_game(
 
 
 @router.get("/custom-games/{game_id}", response_model=CustomGameResponse)
-def get_custom_game(game_id: str, db: Session = Depends(get_db)):
+def get_custom_game(game_id: int, db: Session = Depends(get_db)):
     """Get custom game by ID."""
     game = db.query(CustomGame).filter(CustomGame.id == game_id).first()
     if not game:
@@ -78,7 +78,7 @@ def get_custom_game(game_id: str, db: Session = Depends(get_db)):
 
 @router.put("/custom-games/{game_id}", response_model=CustomGameResponse)
 async def update_custom_game(
-    game_id: str,
+    game_id: int,
     game_data: CustomGameUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -92,12 +92,18 @@ async def update_custom_game(
     if game.creator_id != current_user.id and current_user.role != "head-admin":
         raise HTTPException(status_code=403, detail="Not authorized")
 
-    # Update fields
-    if game_data.name:
+    # Update fields (check for None explicitly)
+    if game_data.name is not None:
         game.name = game_data.name
-    if game_data.valid_player_counts:
+    if game_data.player_count_type is not None:
+        game.player_count_type = game_data.player_count_type
+    if game_data.min_players is not None:
+        game.min_players = game_data.min_players
+    if game_data.max_players is not None:
+        game.max_players = game_data.max_players
+    if game_data.valid_player_counts is not None:
         game.valid_player_counts = game_data.valid_player_counts
-    if game_data.length_in_minutes:
+    if game_data.length_in_minutes is not None:
         game.length_in_minutes = game_data.length_in_minutes
 
     db.commit()
@@ -107,7 +113,7 @@ async def update_custom_game(
 
 @router.delete("/custom-games/{game_id}", status_code=204)
 async def delete_custom_game(
-    game_id: str,
+    game_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -131,10 +137,46 @@ def list_shared_instances(db: Session = Depends(get_db)):
     return instances
 
 
+@router.put("/board-games/{game_id}", response_model=BoardGameResponse)
+async def update_board_game(
+    game_id: int,
+    game_data: BoardGameUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Update board game (admin only)."""
+    if current_user.role != "head-admin":
+        raise HTTPException(status_code=403, detail="Only admins can update board games")
+
+    game = db.query(BoardGame).filter(BoardGame.id == game_id).first()
+    if not game:
+        raise HTTPException(status_code=404, detail="Game not found")
+
+    # Update fields (check for None explicitly)
+    if game_data.name is not None:
+        game.name = game_data.name
+    if game_data.description is not None:
+        game.description = game_data.description
+    if game_data.player_count_type is not None:
+        game.player_count_type = game_data.player_count_type
+    if game_data.min_players is not None:
+        game.min_players = game_data.min_players
+    if game_data.max_players is not None:
+        game.max_players = game_data.max_players
+    if game_data.valid_player_counts is not None:
+        game.valid_player_counts = game_data.valid_player_counts
+    if game_data.length_in_minutes is not None:
+        game.length_in_minutes = game_data.length_in_minutes
+
+    db.commit()
+    db.refresh(game)
+    return game
+
+
 @router.post("/shared-instances", status_code=201)
 async def add_game_instance(
-    game_id: str = None,
-    custom_game_id: str = None,
+    game_id: int = None,
+    custom_game_id: int = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -143,7 +185,6 @@ async def add_game_instance(
         raise HTTPException(status_code=400, detail="Either game_id or custom_game_id required")
 
     instance = SharedGameInstance(
-        id=f"instance-{uuid.uuid4().hex[:8]}",
         game_id=game_id,
         custom_game_id=custom_game_id,
         contributor_id=current_user.id

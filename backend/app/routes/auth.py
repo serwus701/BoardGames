@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from datetime import timedelta
-import uuid
 
 from app.database import get_db
 from app.models.user import User
@@ -25,7 +24,6 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
 
     # Create new user
     new_user = User(
-        id=f"user-{uuid.uuid4().hex[:8]}",
         name=user_data.name,
         email=user_data.email,
         password_hash=hash_password(user_data.password),
@@ -40,7 +38,7 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
 
     # Create access token
     access_token = create_access_token(
-        data={"sub": new_user.id},
+        data={"sub": str(new_user.id)},
         expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     )
 
@@ -63,7 +61,7 @@ def login(credentials: LoginRequest, db: Session = Depends(get_db)):
 
     # Create access token
     access_token = create_access_token(
-        data={"sub": user.id},
+        data={"sub": str(user.id)},
         expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     )
 

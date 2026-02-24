@@ -25,7 +25,7 @@ class UserUpdate(BaseModel):
 
 
 class UserResponse(UserBase):
-    id: str
+    id: int
     role: str
     created_at: datetime
     updated_at: datetime

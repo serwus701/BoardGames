@@ -4,9 +4,9 @@ from typing import Optional
 
 
 class GameQueueItemBase(BaseModel):
-    game_id: str
-    game_instance_id: str
-    added_by_user_id: str
+    game_id: int
+    game_instance_id: int
+    added_by_user_id: int
 
 
 class GameQueueItemCreate(GameQueueItemBase):
@@ -14,7 +14,7 @@ class GameQueueItemCreate(GameQueueItemBase):
 
 
 class GameQueueItemResponse(GameQueueItemBase):
-    id: str
+    id: int
     queue_position: int
     added_at: datetime
 

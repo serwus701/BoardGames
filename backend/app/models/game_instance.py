@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, DateTime, func, ForeignKey
+from sqlalchemy import Column, String, DateTime, func, ForeignKey, Integer
 from sqlalchemy.orm import relationship
 from app.database import Base
 
@@ -6,10 +6,10 @@ from app.database import Base
 class SharedGameInstance(Base):
     __tablename__ = "shared_game_instances"
 
-    id = Column(String, primary_key=True)
-    game_id = Column(String, ForeignKey("board_games.id"), nullable=True)
-    custom_game_id = Column(String, ForeignKey("custom_games.id"), nullable=True)
-    contributor_id = Column(String, ForeignKey("users.id"), nullable=False)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    game_id = Column(Integer, ForeignKey("board_games.id"), nullable=True)
+    custom_game_id = Column(Integer, ForeignKey("custom_games.id"), nullable=True)
+    contributor_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     added_at = Column(DateTime, server_default=func.now())
 
     # Relationships

@@ -10,22 +10,21 @@ class EventBase(BaseModel):
 
 
 class EventCreate(EventBase):
-    organizer_id: str
+    organizer_id: int
 
 
 class EventUpdate(BaseModel):
     date_time: Optional[datetime] = None
     location: Optional[str] = None
     estimated_length_in_minutes: Optional[str] = None
-    selected_games: Optional[List[str]] = None
-    registered_players: Optional[List[str]] = None
+    selected_games: Optional[List[int]] = None
 
 
 class EventResponse(EventBase):
-    id: str
-    organizer_id: str
-    selected_games: Optional[List[str]]
-    registered_players: Optional[List[str]]
+    id: int
+    organizer_id: int
+    selected_games: Optional[List[int]] = None
+    registered_players: List[int] = []
     created_at: datetime
     updated_at: datetime
 

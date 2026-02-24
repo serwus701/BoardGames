@@ -6,10 +6,10 @@ from app.database import Base
 class GameQueueItem(Base):
     __tablename__ = "game_queue"
 
-    id = Column(String, primary_key=True)
-    game_instance_id = Column(String, nullable=False)  # Reference to SharedGameInstance
-    game_id = Column(String, ForeignKey("board_games.id"), nullable=False)
-    added_by_user_id = Column(String, ForeignKey("users.id"), nullable=False)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    game_instance_id = Column(Integer, nullable=False)  # Reference to SharedGameInstance
+    game_id = Column(Integer, ForeignKey("board_games.id"), nullable=False)
+    added_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     added_at = Column(DateTime, server_default=func.now())
     queue_position = Column(Integer, nullable=False, default=0)
 

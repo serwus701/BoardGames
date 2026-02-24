@@ -24,7 +24,7 @@ def list_users(db: Session = Depends(get_db)):
 
 
 @router.get("/{user_id}", response_model=UserResponse)
-def get_user(user_id: str, db: Session = Depends(get_db)):
+def get_user(user_id: int, db: Session = Depends(get_db)):
     """Get user by ID."""
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
@@ -34,7 +34,7 @@ def get_user(user_id: str, db: Session = Depends(get_db)):
 
 @router.put("/{user_id}", response_model=UserResponse)
 async def update_user(
-    user_id: str,
+    user_id: int,
     user_data: UserUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -71,7 +71,7 @@ async def update_user(
 
 @router.delete("/{user_id}", status_code=204)
 async def delete_user(
-    user_id: str,
+    user_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):

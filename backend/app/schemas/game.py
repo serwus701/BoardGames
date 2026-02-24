@@ -1,21 +1,34 @@
 from pydantic import BaseModel
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Literal
 
 
 class BoardGameBase(BaseModel):
     name: str
     description: Optional[str] = None
     length_in_minutes: Optional[int] = None
-    valid_player_counts: List[int]
+    player_count_type: Literal['specific', 'range', 'minimum'] = 'specific'
+    min_players: Optional[int] = None
+    max_players: Optional[int] = None
+    valid_player_counts: Optional[List[int]] = None
 
 
 class BoardGameCreate(BoardGameBase):
-    id: str
+    pass
+
+
+class BoardGameUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    length_in_minutes: Optional[int] = None
+    player_count_type: Optional[Literal['specific', 'range', 'minimum']] = None
+    min_players: Optional[int] = None
+    max_players: Optional[int] = None
+    valid_player_counts: Optional[List[int]] = None
 
 
 class BoardGameResponse(BoardGameBase):
-    id: str
+    id: int
     created_at: datetime
 
     class Config:
@@ -24,7 +37,10 @@ class BoardGameResponse(BoardGameBase):
 
 class CustomGameBase(BaseModel):
     name: str
-    valid_player_counts: List[int]
+    player_count_type: Literal['specific', 'range', 'minimum'] = 'specific'
+    min_players: Optional[int] = None
+    max_players: Optional[int] = None
+    valid_player_counts: Optional[List[int]] = None
     length_in_minutes: Optional[int] = None
 
 
@@ -34,13 +50,16 @@ class CustomGameCreate(CustomGameBase):
 
 class CustomGameUpdate(BaseModel):
     name: Optional[str] = None
+    player_count_type: Optional[Literal['specific', 'range', 'minimum']] = None
+    min_players: Optional[int] = None
+    max_players: Optional[int] = None
     valid_player_counts: Optional[List[int]] = None
     length_in_minutes: Optional[int] = None
 
 
 class CustomGameResponse(CustomGameBase):
-    id: str
-    creator_id: str
+    id: int
+    creator_id: int
     created_at: datetime
     updated_at: datetime
 
