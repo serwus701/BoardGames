@@ -1,0 +1,21 @@
+from sqlalchemy import Column, String, DateTime, func, ForeignKey, Integer
+from sqlalchemy.orm import relationship
+from app.database import Base
+
+
+class GameQueueItem(Base):
+    __tablename__ = "game_queue"
+
+    id = Column(String, primary_key=True)
+    game_instance_id = Column(String, nullable=False)  # Reference to SharedGameInstance
+    game_id = Column(String, ForeignKey("board_games.id"), nullable=False)
+    added_by_user_id = Column(String, ForeignKey("users.id"), nullable=False)
+    added_at = Column(DateTime, server_default=func.now())
+    queue_position = Column(Integer, nullable=False, default=0)
+
+    # Relationships
+    game = relationship("BoardGame", back_populates="queue_items", foreign_keys=[game_id])
+    added_by = relationship("User", foreign_keys=[added_by_user_id])
+
+    def __repr__(self):
+        return f"<GameQueueItem {self.game_id} position={self.queue_position}>"
