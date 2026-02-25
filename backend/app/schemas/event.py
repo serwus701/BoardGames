@@ -11,6 +11,7 @@ class EventBase(BaseModel):
 
 class EventCreate(EventBase):
     organizer_id: int
+    selected_games: Optional[List[int]] = None
 
 
 class EventUpdate(BaseModel):

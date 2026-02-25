@@ -18,8 +18,7 @@ class User(Base):
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
     # Relationships
-    custom_games = relationship("CustomGame", back_populates="creator", foreign_keys="CustomGame.creator_id")
-    shared_game_instances = relationship("SharedGameInstance", back_populates="contributor", foreign_keys="SharedGameInstance.contributor_id")
+    custom_games = relationship("BoardGame", back_populates="creator", foreign_keys="BoardGame.creator_id")
     events = relationship("Event", back_populates="organizer", foreign_keys="Event.organizer_id")
     event_registrations = relationship("EventRegistration", back_populates="user", cascade="all, delete-orphan")
 

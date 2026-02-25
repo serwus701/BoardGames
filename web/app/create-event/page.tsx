@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { eventsAPI } from '@/utils/api';
+import { eventsAPI, queueAPI, gamesAPI } from '@/utils/api';
 
 export default function CreateEventPage() {
     const { isLoggedIn, user, token, isLoading: isAuthLoading } = useAuth();
@@ -15,6 +15,9 @@ export default function CreateEventPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const [successMessage, setSuccessMessage] = useState('');
+    const [queueItems, setQueueItems] = useState<any[]>([]);
+    const [boardGamesMap, setBoardGamesMap] = useState<Record<number, any>>({});
+    const [selectedQueueItems, setSelectedQueueItems] = useState<number[]>([]);
 
     useEffect(() => {
         if (isAuthLoading) {
@@ -23,6 +26,18 @@ export default function CreateEventPage() {
         if (!isLoggedIn) {
             router.push('/login');
         }
+        // load queue + games for assignment suggestions
+        (async () => {
+            try {
+                const [queue, games] = await Promise.all([queueAPI.listQueue(), gamesAPI.listBoardGames()]);
+                setQueueItems(queue || []);
+                const map: Record<number, any> = {};
+                (games || []).forEach((g: any) => (map[Number(g.id)] = g));
+                setBoardGamesMap(map);
+            } catch (e) {
+                // ignore
+            }
+        })();
     }, [isLoggedIn, isAuthLoading, router]);
 
     if (isAuthLoading) {
@@ -81,7 +96,8 @@ export default function CreateEventPage() {
                     date_time: formData.date_time,
                     location: user.home_address,
                     organizer_id: user.id,
-                    estimated_length_in_minutes: estimatedMinutes
+                    estimated_length_in_minutes: estimatedMinutes,
+                    selected_games: selectedQueueItems
                 },
                 token
             );
@@ -181,6 +197,28 @@ export default function CreateEventPage() {
                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
                             />
                             <p className="text-xs text-gray-500 mt-1">Optional - how many hours you expect the event to last</p>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">Assign Games From Queue (optional)</label>
+                            <div className="space-y-2 max-h-48 overflow-auto border rounded p-2 bg-white">
+                                {queueItems.length === 0 && <p className="text-sm text-gray-500">No items in queue</p>}
+                                {queueItems.map((qi) => {
+                                    const gid = qi.game_id ?? qi.gameId;
+                                    const game = boardGamesMap[Number(gid)];
+                                    const label = game ? `${game.name}` : `Game #${gid}`;
+                                    const checked = selectedQueueItems.includes(qi.id);
+                                    return (
+                                        <div key={qi.id} className="flex items-center gap-3">
+                                            <input type="checkbox" checked={checked} onChange={() => {
+                                                setSelectedQueueItems(prev => prev.includes(qi.id) ? prev.filter(id => id !== qi.id) : [...prev, qi.id]);
+                                            }} />
+                                            <div className="text-sm text-gray-700">{label} <span className="text-xs text-gray-400">(queue pos: {qi.queue_position})</span></div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                            <p className="text-xs text-gray-500 mt-1">Selected queue items will be reserved for this event and removed from the global queue.</p>
                         </div>
 
                         <button

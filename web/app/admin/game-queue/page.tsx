@@ -3,20 +3,37 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { boardGames, gameQueue } from '@/data/mockEvents';
+import { gamesAPI, queueAPI } from '@/utils/api';
 
 export default function GameQueueManagementPage() {
     const { isLoggedIn, user } = useAuth();
     const router = useRouter();
-    const [queue, setQueue] = useState(gameQueue);
+    const [queue, setQueue] = useState<any[]>([]);
     const [selectedGameId, setSelectedGameId] = useState('');
     const [successMessage, setSuccessMessage] = useState('');
     const [errorMessage, setErrorMessage] = useState('');
+    const [boardGames, setBoardGames] = useState<Record<string, any>>({});
 
     useEffect(() => {
         if (!isLoggedIn) {
             router.push('/login');
         }
+        // Load games and current queue
+        (async () => {
+            try {
+                const [games, q] = await Promise.all([
+                    gamesAPI.listBoardGames(),
+                    queueAPI.listQueue()
+                ]);
+
+                const gamesMap: Record<string, any> = {};
+                (games || []).forEach((g: any) => (gamesMap[g.id] = { id: g.id, name: g.name }));
+                setBoardGames(gamesMap);
+                setQueue(q || []);
+            } catch (err) {
+                console.error('Failed loading queue/games', err);
+            }
+        })();
     }, [isLoggedIn, router]);
 
     if (!isLoggedIn) {

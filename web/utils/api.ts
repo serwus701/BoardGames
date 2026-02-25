@@ -5,10 +5,19 @@
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
+import {
+    User,
+    CustomGame,
+    SharedGameInstance,
+    Event,
+    GameQueueItem,
+    Location,
+} from '@/types';
+import { BoardGame } from '@/types/BoardGame';
 export class APIError extends Error {
     constructor(
         public status: number,
-        public data: any,
+        public data: unknown,
         message: string
     ) {
         super(message);
@@ -18,7 +27,7 @@ export class APIError extends Error {
 /**
  * Make an API request to the backend
  */
-async function apiCall<T>(
+async function apiCall<T extends unknown>(
     path: string,
     options: RequestInit & { token?: string } = {}
 ): Promise<T> {
@@ -43,16 +52,16 @@ async function apiCall<T>(
         if (!response.ok) {
             throw new APIError(response.status, {}, 'API Error');
         }
-        return undefined as T;
+        return undefined as unknown as T;
     }
 
     const data = await response.json();
 
     if (!response.ok) {
-        throw new APIError(response.status, data, data.detail || 'API Error');
+        throw new APIError(response.status, data, (data && (data as any).detail) || 'API Error');
     }
 
-    return data;
+    return data as T;
 }
 
 /**
@@ -73,7 +82,7 @@ export const authAPI = {
         return apiCall<{
             access_token: string;
             token_type: string;
-            user: any;
+            user: User;
         }>('/auth/register', {
             method: 'POST',
             body: JSON.stringify(userData),
@@ -87,7 +96,7 @@ export const authAPI = {
         return apiCall<{
             access_token: string;
             token_type: string;
-            user: any;
+            user: User;
         }>('/auth/login', {
             method: 'POST',
             body: JSON.stringify({ email, password }),
@@ -103,7 +112,7 @@ export const usersAPI = {
      * Get current user info
      */
     async getCurrentUser(token: string) {
-        return apiCall<any>('/users/me', {
+        return apiCall<User>('/users/me', {
             method: 'GET',
             token,
         });
@@ -113,7 +122,7 @@ export const usersAPI = {
      * Get all users
      */
     async listUsers() {
-        return apiCall<any[]>('/users', {
+        return apiCall<User[]>('/users', {
             method: 'GET',
         });
     },
@@ -122,7 +131,7 @@ export const usersAPI = {
      * Get user by ID
      */
     async getUser(userId: string) {
-        return apiCall<any>(`/users/${userId}`, {
+        return apiCall<User>(`/users/${userId}`, {
             method: 'GET',
         });
     },
@@ -130,8 +139,8 @@ export const usersAPI = {
     /**
      * Update user
      */
-    async updateUser(userId: string, data: any, token: string) {
-        return apiCall<any>(`/users/${userId}`, {
+    async updateUser(userId: string, data: Partial<User>, token: string) {
+        return apiCall<User>(`/users/${userId}`, {
             method: 'PUT',
             body: JSON.stringify(data),
             token,
@@ -157,7 +166,7 @@ export const gamesAPI = {
      * Get all board games
      */
     async listBoardGames() {
-        return apiCall<any[]>('/games/board-games', {
+        return apiCall<BoardGame[]>('/games/board-games', {
             method: 'GET',
         });
     },
@@ -165,8 +174,8 @@ export const gamesAPI = {
     /**
      * Create a board game (admin only)
      */
-    async createBoardGame(game: any, token: string) {
-        return apiCall<any>('/games/board-games', {
+    async createBoardGame(game: Partial<BoardGame>, token: string) {
+        return apiCall<BoardGame>('/games/board-games', {
             method: 'POST',
             body: JSON.stringify(game),
             token,
@@ -177,7 +186,7 @@ export const gamesAPI = {
      * Get all custom games
      */
     async listCustomGames() {
-        return apiCall<any[]>('/games/custom-games', {
+        return apiCall<CustomGame[]>('/games/custom-games', {
             method: 'GET',
         });
     },
@@ -193,7 +202,7 @@ export const gamesAPI = {
         },
         token: string
     ) {
-        return apiCall<any>('/games/custom-games', {
+        return apiCall<CustomGame>('/games/custom-games', {
             method: 'POST',
             body: JSON.stringify(game),
             token,
@@ -204,7 +213,7 @@ export const gamesAPI = {
      * Get custom game by ID
      */
     async getCustomGame(gameId: string) {
-        return apiCall<any>(`/games/custom-games/${gameId}`, {
+        return apiCall<CustomGame>(`/games/custom-games/${gameId}`, {
             method: 'GET',
         });
     },
@@ -212,8 +221,8 @@ export const gamesAPI = {
     /**
      * Update custom game
      */
-    async updateCustomGame(gameId: string, data: any, token: string) {
-        return apiCall<any>(`/games/custom-games/${gameId}`, {
+    async updateCustomGame(gameId: string, data: Partial<CustomGame>, token: string) {
+        return apiCall<CustomGame>(`/games/custom-games/${gameId}`, {
             method: 'PUT',
             body: JSON.stringify(data),
             token,
@@ -234,7 +243,7 @@ export const gamesAPI = {
      * Get all shared instances
      */
     async listSharedInstances() {
-        return apiCall<any[]>('/games/shared-instances', {
+        return apiCall<SharedGameInstance[]>('/games/shared-instances', {
             method: 'GET',
         });
     },
@@ -253,7 +262,7 @@ export const gamesAPI = {
         if (props.game_id) params.append('game_id', props.game_id);
         if (props.custom_game_id) params.append('custom_game_id', props.custom_game_id);
 
-        return apiCall<any>(`/games/shared-instances?${params}`, {
+        return apiCall<SharedGameInstance>(`/games/shared-instances?${params}`, {
             method: 'POST',
             token,
         });
@@ -268,7 +277,7 @@ export const eventsAPI = {
      * Get all events
      */
     async listEvents() {
-        return apiCall<any[]>('/events', {
+        return apiCall<Event[]>('/events', {
             method: 'GET',
         });
     },
@@ -282,10 +291,11 @@ export const eventsAPI = {
             location: string;
             organizer_id: string;
             estimated_length_in_minutes?: string;
+            selected_games?: number[];
         },
         token: string
     ) {
-        return apiCall<any>('/events', {
+        return apiCall<Event>('/events', {
             method: 'POST',
             body: JSON.stringify(event),
             token,
@@ -296,7 +306,7 @@ export const eventsAPI = {
      * Get event by ID
      */
     async getEvent(eventId: string) {
-        return apiCall<any>(`/events/${eventId}`, {
+        return apiCall<Event>(`/events/${eventId}`, {
             method: 'GET',
         });
     },
@@ -304,8 +314,8 @@ export const eventsAPI = {
     /**
      * Update event
      */
-    async updateEvent(eventId: string, data: any, token: string) {
-        return apiCall<any>(`/events/${eventId}`, {
+    async updateEvent(eventId: string, data: Partial<Event>, token: string) {
+        return apiCall<Event>(`/events/${eventId}`, {
             method: 'PUT',
             body: JSON.stringify(data),
             token,
@@ -326,7 +336,7 @@ export const eventsAPI = {
      * Register for an event
      */
     async registerForEvent(eventId: string, token: string) {
-        return apiCall<any>(`/events/${eventId}/register`, {
+        return apiCall<{ success: boolean }>(`/events/${eventId}/register`, {
             method: 'POST',
             body: JSON.stringify({}),
             token,
@@ -352,7 +362,7 @@ export const queueAPI = {
      * Get all queue items
      */
     async listQueue() {
-        return apiCall<any[]>('/game-queue', {
+        return apiCall<GameQueueItem[]>('/game-queue', {
             method: 'GET',
         });
     },
@@ -367,7 +377,7 @@ export const queueAPI = {
         },
         token: string
     ) {
-        return apiCall<any>('/game-queue', {
+        return apiCall<GameQueueItem>('/game-queue', {
             method: 'POST',
             body: JSON.stringify(item),
             token,
@@ -381,7 +391,7 @@ export const queueAPI = {
         items: Array<{ id: string; queue_position: number }>,
         token: string
     ) {
-        return apiCall<any>('/game-queue/reorder', {
+        return apiCall<GameQueueItem[]>('/game-queue/reorder', {
             method: 'POST',
             body: JSON.stringify({ items }),
             token,

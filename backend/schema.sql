@@ -27,42 +27,18 @@ CREATE TABLE IF NOT EXISTS board_games (
     max_players INT,
     valid_player_counts JSON,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_name (name)
-);
-
--- Custom games table
-CREATE TABLE IF NOT EXISTS custom_games (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    name VARCHAR(255) NOT NULL,
-    player_count_type VARCHAR(20) NOT NULL DEFAULT 'specific',
-    min_players INT,
-    max_players INT,
-    valid_player_counts JSON,
-    length_in_minutes INT,
-    creator_id INT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    creator_id INT,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (creator_id) REFERENCES users(id) ON DELETE CASCADE,
     INDEX idx_name (name)
 );
 
--- Shared game instances table
-CREATE TABLE IF NOT EXISTS shared_game_instances (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    game_id INT,
-    custom_game_id INT,
-    contributor_id INT NOT NULL,
-    added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (game_id) REFERENCES board_games(id) ON DELETE CASCADE,
-    FOREIGN KEY (custom_game_id) REFERENCES custom_games(id) ON DELETE CASCADE,
-    FOREIGN KEY (contributor_id) REFERENCES users(id) ON DELETE CASCADE
-);
+
+-- event_games junction table defined after events table
 
 -- Game queue items table
 CREATE TABLE IF NOT EXISTS game_queue (
     id INT PRIMARY KEY AUTO_INCREMENT,
     game_id INT NOT NULL,
-    game_instance_id INT NOT NULL,
     added_by_user_id INT NOT NULL,
     queue_position INT NOT NULL,
     added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -76,12 +52,22 @@ CREATE TABLE IF NOT EXISTS events (
     date_time DATETIME NOT NULL,
     location VARCHAR(255) NOT NULL,
     organizer_id INT NOT NULL,
-    selected_games JSON,
     estimated_length_in_minutes VARCHAR(50),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_date_time (date_time),
     FOREIGN KEY (organizer_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+
+CREATE TABLE IF NOT EXISTS event_games (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    event_id INT NOT NULL,
+    game_id INT NOT NULL,
+    added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (game_id) REFERENCES board_games(id) ON DELETE CASCADE,
+    FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_event_game (event_id, game_id)
 );
 
 -- Event registrations table (many-to-many relationship between events and users)

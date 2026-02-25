@@ -30,6 +30,8 @@ class BoardGameUpdate(BaseModel):
 class BoardGameResponse(BoardGameBase):
     id: int
     created_at: datetime
+    creator_id: Optional[int] = None
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True

@@ -3,16 +3,19 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { mockUsers, mockRegistrationRequests } from '@/data/authMockData';
-import { boardGames, locations } from '@/data/mockEvents';
+import { usersAPI } from '@/utils/api';
+import { gamesAPI } from '@/utils/api';
 import { RegistrationRequest } from '@/types/auth';
 
 export default function AdminPage() {
     const { isLoggedIn, user, isLoading: isAuthLoading } = useAuth();
     const router = useRouter();
     const [activeTab, setActiveTab] = useState<'registrations' | 'users' | 'games' | 'locations'>('registrations');
-    const [registrationRequests, setRegistrationRequests] = useState<RegistrationRequest[]>(mockRegistrationRequests);
+    const [registrationRequests, setRegistrationRequests] = useState<RegistrationRequest[]>([]);
     const [successMessage, setSuccessMessage] = useState('');
+    const [users, setUsers] = useState<any[]>([]);
+    const [boardGames, setBoardGames] = useState<Record<number, any>>({});
+    const [locations, setLocations] = useState<any[]>([]);
 
     useEffect(() => {
         if (isAuthLoading) {
@@ -21,6 +24,31 @@ export default function AdminPage() {
         if (!isLoggedIn || user?.role !== 'head-admin') {
             router.push('/');
         }
+        // Load users and board games for admin UI
+        (async () => {
+            try {
+                const [fetchedUsers, fetchedGames] = await Promise.all([
+                    usersAPI.listUsers(),
+                    gamesAPI.listBoardGames()
+                ]);
+
+                setUsers(fetchedUsers || []);
+
+                const gamesMap: Record<number, any> = {};
+                (fetchedGames || []).forEach((g: any) => {
+                    gamesMap[g.id] = {
+                        id: g.id,
+                        name: g.name,
+                        description: g.description,
+                        validPlayerCounts: g.valid_player_counts || [],
+                        lengthInMinutes: g.length_in_minutes || 0
+                    };
+                });
+                setBoardGames(gamesMap);
+            } catch (err) {
+                console.error('Failed to load admin data', err);
+            }
+        })();
     }, [isLoggedIn, user, isAuthLoading, router]);
 
     if (isAuthLoading) {
@@ -131,7 +159,7 @@ export default function AdminPage() {
                                 : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
                                 }`}
                         >
-                            Users ({mockUsers.length})
+                            Users ({users.length})
                         </button>
                         <button
                             onClick={() => setActiveTab('games')}
@@ -213,7 +241,7 @@ export default function AdminPage() {
                             <div className="space-y-4">
                                 <h2 className="text-2xl font-bold text-gray-900 mb-6">Registered Users</h2>
                                 <div className="grid gap-4">
-                                    {mockUsers.map((u) => (
+                                    {users.map((u) => (
                                         <div key={u.id} className="p-4 bg-gray-50 rounded-lg border border-gray-200">
                                             <div className="flex justify-between items-start mb-2">
                                                 <div>

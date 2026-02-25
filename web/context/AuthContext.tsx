@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { AuthUser, AuthContextType } from '@/types/auth';
-import { authAPI, usersAPI } from '@/utils/api';
+import { authAPI, usersAPI, APIError } from '@/utils/api';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -109,29 +109,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             setUser(userData);
             localStorage.setItem('currentUser', JSON.stringify(userData));
-        } catch (error: any) {
+        } catch (error) {
             console.error('Failed to refresh user data:', error);
             // Only logout if it's a 401 (unauthorized) error, otherwise keep user logged in
-            if (error.status === 401) {
+            if (error instanceof APIError && error.status === 401) {
                 logout();
             }
             // For other errors, don't logout - let the user stay logged in
         }
     };
 
+    const value: AuthContextType = {
+        user,
+        isLoading,
+        login,
+        logout,
+        refreshUserData,
+        isLoggedIn: !!user,
+        token,
+        register,
+    };
+
     return (
-        <AuthContext.Provider
-            value={{
-                user,
-                isLoading,
-                login,
-                logout,
-                refreshUserData,
-                isLoggedIn: !!user,
-                token,
-                register: register as any,
-            } as any}
-        >
+        <AuthContext.Provider value={value}>
             {children}
         </AuthContext.Provider>
     );

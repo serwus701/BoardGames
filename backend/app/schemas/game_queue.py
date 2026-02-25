@@ -5,7 +5,6 @@ from typing import Optional
 
 class GameQueueItemBase(BaseModel):
     game_id: int
-    game_instance_id: int
     added_by_user_id: int
 
 
@@ -16,6 +15,7 @@ class GameQueueItemCreate(GameQueueItemBase):
 class GameQueueItemResponse(GameQueueItemBase):
     id: int
     queue_position: int
+    used_in_event_id: Optional[int] = None
     added_at: datetime
 
     class Config:

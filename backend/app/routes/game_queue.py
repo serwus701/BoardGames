@@ -29,7 +29,6 @@ async def add_to_queue(
     max_position = db.query(GameQueueItem).count()
 
     db_item = GameQueueItem(
-        game_instance_id=queue_item.game_instance_id,
         game_id=queue_item.game_id,
         added_by_user_id=current_user.id,
         queue_position=max_position

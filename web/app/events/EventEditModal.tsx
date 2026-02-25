@@ -51,7 +51,7 @@ export default function EventEditModal({
         e.preventDefault();
 
         // Convert hours back to minutes for backend
-        const dataToSave: any = {
+        const dataToSave: Partial<Event> = {
             date_time: formData.date_time,
         };
 

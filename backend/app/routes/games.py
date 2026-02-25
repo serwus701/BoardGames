@@ -3,8 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from app.database import get_db
-from app.models.game import BoardGame, CustomGame
-from app.models.game_instance import SharedGameInstance
+from app.models.game import BoardGame
 from app.models.user import User
 from app.schemas.game import (
     BoardGameCreate, BoardGameResponse,
@@ -43,7 +42,8 @@ async def create_board_game(
 @router.get("/custom-games", response_model=List[CustomGameResponse])
 def list_custom_games(db: Session = Depends(get_db)):
     """List all custom games."""
-    games = db.query(CustomGame).all()
+    # Custom games are stored in the same `board_games` table with a non-null `creator_id`
+    games = db.query(BoardGame).filter(BoardGame.creator_id.isnot(None)).all()
     return games
 
 
@@ -54,13 +54,14 @@ async def create_custom_game(
     current_user: User = Depends(get_current_user)
 ):
     """Create a new custom game."""
-    db_game = CustomGame(
+    db_game = BoardGame(
         name=game.name,
         valid_player_counts=game.valid_player_counts,
         length_in_minutes=game.length_in_minutes,
         creator_id=current_user.id
     )
-    print(db.query(CustomGame).count())
+    # debug: print total custom-like entries
+    print(db.query(BoardGame).filter(BoardGame.creator_id.isnot(None)).count())
     db.add(db_game)
     db.commit()
     db.refresh(db_game)
@@ -70,7 +71,7 @@ async def create_custom_game(
 @router.get("/custom-games/{game_id}", response_model=CustomGameResponse)
 def get_custom_game(game_id: int, db: Session = Depends(get_db)):
     """Get custom game by ID."""
-    game = db.query(CustomGame).filter(CustomGame.id == game_id).first()
+    game = db.query(BoardGame).filter(BoardGame.id == game_id, BoardGame.creator_id.isnot(None)).first()
     if not game:
         raise HTTPException(status_code=404, detail="Game not found")
     return game
@@ -84,7 +85,7 @@ async def update_custom_game(
     current_user: User = Depends(get_current_user)
 ):
     """Update custom game (creator or admin only)."""
-    game = db.query(CustomGame).filter(CustomGame.id == game_id).first()
+    game = db.query(BoardGame).filter(BoardGame.id == game_id).first()
     if not game:
         raise HTTPException(status_code=404, detail="Game not found")
 
@@ -118,7 +119,7 @@ async def delete_custom_game(
     current_user: User = Depends(get_current_user)
 ):
     """Delete custom game (creator or admin only)."""
-    game = db.query(CustomGame).filter(CustomGame.id == game_id).first()
+    game = db.query(BoardGame).filter(BoardGame.id == game_id).first()
     if not game:
         raise HTTPException(status_code=404, detail="Game not found")
 
@@ -128,13 +129,6 @@ async def delete_custom_game(
 
     db.delete(game)
     db.commit()
-
-
-@router.get("/shared-instances", response_model=list)
-def list_shared_instances(db: Session = Depends(get_db)):
-    """List all shared game instances."""
-    instances = db.query(SharedGameInstance).all()
-    return instances
 
 
 @router.put("/board-games/{game_id}", response_model=BoardGameResponse)
@@ -152,7 +146,6 @@ async def update_board_game(
     if not game:
         raise HTTPException(status_code=404, detail="Game not found")
 
-    # Update fields (check for None explicitly)
     if game_data.name is not None:
         game.name = game_data.name
     if game_data.description is not None:
@@ -173,23 +166,3 @@ async def update_board_game(
     return game
 
 
-@router.post("/shared-instances", status_code=201)
-async def add_game_instance(
-    game_id: int = None,
-    custom_game_id: int = None,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """Add a game instance to shared collection."""
-    if not game_id and not custom_game_id:
-        raise HTTPException(status_code=400, detail="Either game_id or custom_game_id required")
-
-    instance = SharedGameInstance(
-        game_id=game_id,
-        custom_game_id=custom_game_id,
-        contributor_id=current_user.id
-    )
-    db.add(instance)
-    db.commit()
-    db.refresh(instance)
-    return instance

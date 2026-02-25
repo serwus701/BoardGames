@@ -1,10 +1,3 @@
-export interface BoardGame {
-    id: string;
-    name: string;
-    validPlayerCounts: number[];
-    description?: string;
-    lengthInMinutes: number;
-}
 
 export interface CustomGame {
     id: string;
@@ -51,14 +44,4 @@ export interface GameQueueItem {
     usedAt?: Date;
 }
 
-export interface Event {
-    id: string;
-    date_time: string;
-    location: string;
-    organizer_id: string;
-    estimated_length_in_minutes?: string;
-    selected_games?: string[];
-    registered_players?: string[];
-    created_at?: string;
-    updated_at?: string;
-}
+
