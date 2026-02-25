@@ -1,10 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 
 from app.database import get_db
-from app.models.user import User
-from app.schemas.user import UserResponse, UserUpdate
+from app.models import User
+from app.models.schemas.user import UserResponse, UserUpdate
 from app.utils.auth import get_current_user
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -53,8 +53,6 @@ async def update_user(
         user.name = user_data.name
     if user_data.email:
         user.email = user_data.email
-    if user_data.phone:
-        user.phone = user_data.phone
     if user_data.bio:
         user.bio = user_data.bio
     if user_data.home_address:

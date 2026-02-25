@@ -76,7 +76,7 @@ async def get_current_user(
         )
     
     # Import here to avoid circular imports
-    from app.models.user import User
+    from app.models import User
     
     user = db.query(User).filter(User.id == user_id).first()
     if not user:

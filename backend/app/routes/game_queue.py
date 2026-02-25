@@ -1,11 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 
 from app.database import get_db
-from app.models.game_queue import GameQueueItem
-from app.models.user import User
-from app.schemas.game_queue import GameQueueItemCreate, GameQueueItemResponse, QueueReorderRequest
+from app.models import GameQueueItem
+from app.models import User
+from app.models.schemas.game_queue import GameQueueItemCreate, GameQueueItemResponse, QueueReorderRequest
 from app.utils.auth import get_current_user
 
 router = APIRouter(prefix="/game-queue", tags=["game-queue"])

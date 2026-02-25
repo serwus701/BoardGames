@@ -3,8 +3,8 @@ from sqlalchemy.orm import Session
 from datetime import timedelta
 
 from app.database import get_db
-from app.models.user import User
-from app.schemas.user import LoginRequest, TokenResponse, UserCreate, UserResponse
+from app.models import User
+from app.models.schemas.user import LoginRequest, TokenResponse, UserCreate, UserResponse
 from app.utils.auth import hash_password, verify_password, create_access_token
 from app.config import settings
 

@@ -10,7 +10,6 @@ class User(Base):
     name = Column(String, nullable=False)
     email = Column(String, unique=True, nullable=False, index=True)
     password_hash = Column(String, nullable=False)
-    phone = Column(String, nullable=True)
     bio = Column(String, nullable=True)
     home_address = Column(String, nullable=True)
     role = Column(String, default="user")  # "user" or "head-admin"

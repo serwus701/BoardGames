@@ -1,14 +1,6 @@
-from sqlalchemy import Column, String, DateTime, func, ForeignKey, Integer, Table
+from sqlalchemy import Column, String, DateTime, func, ForeignKey, Integer
 from sqlalchemy.orm import relationship
 from app.database import Base
-
-
-event_games = Table(
-    "event_games",
-    Base.metadata,
-    Column("event_id", ForeignKey("events.id", ondelete="CASCADE"), primary_key=True),
-    Column("game_id", ForeignKey("board_games.id", ondelete="CASCADE"), primary_key=True),
-)
 
 
 class Event(Base):
@@ -25,7 +17,7 @@ class Event(Base):
     organizer = relationship("User", back_populates="events", foreign_keys=[organizer_id])
     registrations = relationship("EventRegistration", back_populates="event", cascade="all, delete-orphan")
 
-    games = relationship("BoardGame", secondary=event_games)
+    games = relationship("BoardGame", secondary="event_games")
 
     def __repr__(self):
         return f"<Event {self.id} on {self.date_time}>"
