@@ -154,7 +154,7 @@ export const EventsList = (props: EventsListProps) => {
                             </div>
 
                             {(() => {
-                                const eventGames = getEventGames(event.id);
+                                const eventGames = event.event_games ?? [];
                                 const totalGameTime = calculateTotalGameTime(eventGames);
                                 const eventDuration = event.estimated_length_in_minutes
                                     ? parseFloat(event.estimated_length_in_minutes)

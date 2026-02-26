@@ -30,8 +30,8 @@ def list_events(db: Session = Depends(get_db)):
     for event in events:
         event_dict = EventResponse.model_validate(event).model_dump()
 
-        event_dict["registered_players"] = [reg.user for reg in event.registrations]
-        event_dict["selected_games"] = list(event.games)
+        event_dict["registered_players"] = [reg.user_id for reg in event.registrations]
+        event_dict["selected_games"] = [g.id for g in event.games]
 
         response.append(event_dict)
 
