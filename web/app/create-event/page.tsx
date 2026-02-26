@@ -17,7 +17,6 @@ export default function CreateEventPage() {
     const [successMessage, setSuccessMessage] = useState('');
     const [queueItems, setQueueItems] = useState<any[]>([]);
     const [boardGamesMap, setBoardGamesMap] = useState<Record<number, any>>({});
-    const [selectedQueueItems, setSelectedQueueItems] = useState<number[]>([]);
 
     useEffect(() => {
         if (isAuthLoading) {
@@ -91,13 +90,16 @@ export default function CreateEventPage() {
                 ? String(parseFloat(formData.estimated_length_in_hours) * 60)
                 : undefined;
 
+            // Auto-assign all queue items to the event
+            const autoAssignedGames = queueItems.map(qi => qi.id);
+
             await eventsAPI.createEvent(
                 {
                     date_time: formData.date_time,
                     location: user.home_address,
                     organizer_id: user.id,
                     estimated_length_in_minutes: estimatedMinutes,
-                    selected_games: selectedQueueItems
+                    selected_games: autoAssignedGames
                 },
                 token
             );
@@ -200,25 +202,29 @@ export default function CreateEventPage() {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">Assign Games From Queue (optional)</label>
-                            <div className="space-y-2 max-h-48 overflow-auto border rounded p-2 bg-white">
-                                {queueItems.length === 0 && <p className="text-sm text-gray-500">No items in queue</p>}
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                Games for next session
+                            </label>
+                            <div className="space-y-2 max-h-48 overflow-auto border rounded p-3 bg-gray-50">
+                                {queueItems.length === 0 && (
+                                    <p className="text-sm text-gray-500 italic">No games in queue</p>
+                                )}
                                 {queueItems.map((qi) => {
                                     const gid = qi.game_id ?? qi.gameId;
                                     const game = boardGamesMap[Number(gid)];
                                     const label = game ? `${game.name}` : `Game #${gid}`;
-                                    const checked = selectedQueueItems.includes(qi.id);
                                     return (
-                                        <div key={qi.id} className="flex items-center gap-3">
-                                            <input type="checkbox" checked={checked} onChange={() => {
-                                                setSelectedQueueItems(prev => prev.includes(qi.id) ? prev.filter(id => id !== qi.id) : [...prev, qi.id]);
-                                            }} />
-                                            <div className="text-sm text-gray-700">{label} <span className="text-xs text-gray-400">(queue pos: {qi.queue_position})</span></div>
+                                        <div key={qi.id} className="flex items-center gap-2 text-sm text-gray-700">
+                                            <span className="text-green-600">✓</span>
+                                            <span>{label}</span>
+                                            {/* <span>{game.}</span> */}
                                         </div>
                                     );
                                 })}
                             </div>
-                            <p className="text-xs text-gray-500 mt-1">Selected queue items will be reserved for this event and removed from the global queue.</p>
+                            <p className="text-xs text-gray-500 mt-1">
+                                All queue items will be automatically assigned to this event and removed from the global queue.
+                            </p>
                         </div>
 
                         <button

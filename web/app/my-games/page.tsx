@@ -153,7 +153,11 @@ export default function OurGamesPage() {
                         </div>
                     </div>
                 </div>
-                <AddGame setErrorMessage={setErrorMessage} setSuccessMessage={setSuccessMessage} />
+                <AddGame
+                    setErrorMessage={setErrorMessage}
+                    setSuccessMessage={setSuccessMessage}
+                    setBoardGames={setBoardGames}
+                />
 
             </div>
         </div>

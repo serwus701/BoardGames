@@ -6,11 +6,12 @@ import { useState } from "react";
 interface AddGameProps {
     setErrorMessage: (msg: string) => void;
     setSuccessMessage: (msg: string) => void;
+    setBoardGames?: (updater: any) => void;
 }
 
 
 export const AddGame = (props: AddGameProps) => {
-    const { setErrorMessage, setSuccessMessage } = props;
+    const { setErrorMessage, setSuccessMessage, setBoardGames } = props;
     const { token } = useAuth();
 
     const [showNewGameForm, setShowNewGameForm] = useState(false);
@@ -128,21 +129,23 @@ export const AddGame = (props: AddGameProps) => {
             }
 
             // Update boardGames map with new custom game and store playerCounts meta
-            setBoardGames(prev => ({
-                ...prev,
-                [apiResponse.id]: {
-                    id: apiResponse.id,
-                    name: apiResponse.name,
-                    description: undefined,
-                    validPlayerCounts: apiResponse.valid_player_counts,
-                    lengthInMinutes: apiResponse.length_in_minutes,
-                    playerCountsMeta: (newGameForm.playerCountsType === 'minOnly')
-                        ? { type: 'minOnly', min: parseInt(newGameForm.playerCountsMin || '', 10) }
-                        : (newGameForm.playerCountsType === 'minMax')
-                            ? { type: 'minMax', min: parseInt(newGameForm.playerCountsMin || '', 10), max: parseInt(newGameForm.playerCountsMax || '', 10) }
-                            : { type: 'exact' }
-                }
-            }));
+            if (setBoardGames) {
+                setBoardGames(prev => ({
+                    ...prev,
+                    [apiResponse.id]: {
+                        id: apiResponse.id,
+                        name: apiResponse.name,
+                        description: undefined,
+                        validPlayerCounts: apiResponse.valid_player_counts,
+                        lengthInMinutes: apiResponse.length_in_minutes,
+                        playerCountsMeta: (newGameForm.playerCountsType === 'minOnly')
+                            ? { type: 'minOnly', min: parseInt(newGameForm.playerCountsMin || '', 10) }
+                            : (newGameForm.playerCountsType === 'minMax')
+                                ? { type: 'minMax', min: parseInt(newGameForm.playerCountsMin || '', 10), max: parseInt(newGameForm.playerCountsMax || '', 10) }
+                                : { type: 'exact' }
+                    }
+                }));
+            }
 
             setSuccessMessage(`"${apiResponse.name}" added to our collection!`);
             setTimeout(() => setSuccessMessage(''), 3000);
