@@ -82,69 +82,6 @@ export default function EventsPage() {
         fetchData();
     }, [isLoggedIn, isAuthLoading, router]);
 
-    const canManageEvent = (event: Event): boolean => {
-        if (!user) return false;
-        return user.id === event.organizer_id || user.role === 'head-admin' || user.role === 'admin';
-    };
-
-    const assignGamesToEvents = () => {
-        const assignments: Record<string, AssignedGame[]> = {};
-
-        type RawQueueItem = GameQueueItem & Record<string, unknown> & {
-            used_in_event_id?: string;
-            usedInEventId?: string;
-            queue_position?: number;
-            game_id?: string;
-            gameId?: string;
-        };
-
-        const availableQueue = (queueItems as RawQueueItem[])
-            .filter(item => !(item.used_in_event_id ?? item.usedInEventId))
-            .sort((a, b) => ((a.queue_position ?? 0) as number) - ((b.queue_position ?? 0) as number));
-
-        let queueIndex = 0;
-
-        const sortedEvents = [...upcomingEvents].sort((a, b) =>
-            new Date(a.date_time).getTime() - new Date(b.date_time).getTime()
-        );
-
-        for (const event of sortedEvents) {
-            const eventDurationMinutes = event.estimated_length_in_minutes
-                ? parseFloat(event.estimated_length_in_minutes)
-                : 0;
-
-            type AssignedGame = (BoardGame | CustomGame) & { queueItemId?: string };
-            const assignedGames: AssignedGame[] = [];
-            let totalTime = 0;
-
-            while (queueIndex < availableQueue.length) {
-                const queueItem = availableQueue[queueIndex];
-                const gameId = (queueItem as RawQueueItem).game_id ?? (queueItem as RawQueueItem).gameId ?? (queueItem.gameId as unknown);
-                const game = gamesMap[String(gameId)];
-
-                if (game) {
-                    const gRec = game as Record<string, unknown>;
-                    const gameTime = Number(gRec['length_in_minutes'] ?? gRec['lengthInMinutes'] ?? gRec['lengthInMinutes'] ?? 0) || 0;
-
-                    if (assignedGames.length === 0 || totalTime + gameTime <= eventDurationMinutes) {
-                        assignedGames.push({ ...(game as AssignedGame), queueItemId: (queueItem as RawQueueItem).id });
-                        totalTime += gameTime;
-                        queueIndex++;
-                    } else {
-                        break;
-                    }
-                } else {
-                    queueIndex++;
-                }
-            }
-
-            if (assignedGames.length > 0) {
-                assignments[event.id] = assignedGames;
-            }
-        }
-
-        return assignments;
-    };
 
 
 
@@ -344,7 +281,6 @@ export default function EventsPage() {
                             handleDeleteEvent={handleDeleteEvent}
                             handleRegister={handleRegister}
                             handleUnregister={handleUnregister}
-                            canManageEvent={canManageEvent}
                             isUserRegistered={isUserRegistered}
                         />
                     </div>
