@@ -87,25 +87,17 @@ export default function LoginPage() {
                             <div className="space-y-2 text-xs text-gray-600">
                                 <div>
                                     <p className="font-medium text-gray-700">Admin</p>
-                                    <p className="text-gray-500">john@example.com / password123</p>
+                                    <p className="text-gray-500">john@example.com / pass123</p>
                                 </div>
                                 <div>
                                     <p className="font-medium text-gray-700">User</p>
-                                    <p className="text-gray-500">sarah@example.com / password123</p>
+                                    <p className="text-gray-500">sarah@example.com / pass123</p>
                                 </div>
                                 <div>
                                     <p className="font-medium text-gray-700">User</p>
-                                    <p className="text-gray-500">mike@example.com / password123</p>
+                                    <p className="text-gray-500">mike@example.com / pass123</p>
                                 </div>
                             </div>
-                        </div>
-
-                        {/* Register Link */}
-                        <div className="mt-6 text-center border-t pt-6">
-                            <p className="text-gray-600 mb-2">Don't have an account?</p>
-                            <Link href="/register" className="text-blue-600 hover:text-blue-700 font-semibold">
-                                Create an Account
-                            </Link>
                         </div>
                     </div>
                 </div>

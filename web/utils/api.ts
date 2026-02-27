@@ -6,13 +6,12 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 import {
-    User,
     CustomGame,
     SharedGameInstance,
-    Event,
     GameQueueItem,
-    Location,
 } from '@/types';
+import { Event } from '@/types/Event';
+import { User } from '@/types/User';
 import { BoardGame } from '@/types/BoardGame';
 export class APIError extends Error {
     constructor(
