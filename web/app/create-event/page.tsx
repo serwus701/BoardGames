@@ -215,9 +215,7 @@ export default function CreateEventPage() {
                                     const label = game ? `${game.name}` : `Game #${gid}`;
                                     return (
                                         <div key={qi.id} className="flex items-center gap-2 text-sm text-gray-700">
-                                            <span className="text-green-600">✓</span>
                                             <span>{label}</span>
-                                            {/* <span>{game.}</span> */}
                                         </div>
                                     );
                                 })}
