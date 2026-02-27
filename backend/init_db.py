@@ -3,7 +3,7 @@ import sys
 from datetime import datetime, timedelta, timezone
 
 from app.database import SessionLocal, init_db
-from app.models import User, BoardGame, GameQueueItem, Event, EventRegistration
+from app.models import User, BoardGame, Event, EventRegistration
 from app.utils.auth import hash_password
 
 
@@ -22,7 +22,6 @@ def init_sample_data():
             name="John Smith",
             email="john@example.com",
             password_hash=hash_password("pass123"),
-            phone="555-0101",
             bio="Board game enthusiast for 10 years",
             home_address="123 Main St, New York, NY 10001",
             role="head-admin",
@@ -31,7 +30,6 @@ def init_sample_data():
             name="Sarah Johnson",
             email="sarah@example.com",
             password_hash=hash_password("pass123"),
-            phone="555-0102",
             bio="Love strategy games",
             home_address="456 Oak Ave, Boston, MA 02101",
             role="user",
@@ -40,7 +38,6 @@ def init_sample_data():
             name="Mike Chen",
             email="mike@example.com",
             password_hash=hash_password("pass123"),
-            phone="555-0103",
             home_address="789 Elm St, San Francisco, CA 94102",
             role="user",
         )
@@ -48,7 +45,6 @@ def init_sample_data():
             name="Emily Davis",
             email="emily@example.com",
             password_hash=hash_password("pass123"),
-            phone="555-0104",
             bio="Party game enthusiast",
             home_address="321 Pine St, Seattle, WA 98101",
             role="user",
@@ -57,7 +53,6 @@ def init_sample_data():
             name="Robert Wilson",
             email="robert@example.com",
             password_hash=hash_password("pass123"),
-            phone="555-0105",
             bio="Euro games specialist",
             home_address="654 Cedar Ave, Portland, OR 97201",
             role="user",
@@ -164,15 +159,6 @@ def init_sample_data():
         db.commit()
         db.refresh(custom_game)
         print("✓ Created custom (user) games")
-
-        # --- Game queue items (poprawione: były niezdefiniowane) ---
-        queue1 = GameQueueItem(game_id=game1.id, added_by_user_id=user1.id, queue_position=0)
-        queue2 = GameQueueItem(game_id=game2.id, added_by_user_id=user1.id, queue_position=1)
-        queue3 = GameQueueItem(game_id=custom_game.id, added_by_user_id=user2.id, queue_position=2)
-
-        db.add_all([queue1, queue2, queue3])
-        db.commit()
-        print("✓ Created game queue items")
 
         # --- Events ---
         now = datetime.now(timezone.utc)

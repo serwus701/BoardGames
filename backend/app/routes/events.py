@@ -5,11 +5,11 @@ from typing import List
 from app.database import get_db
 from app.models import Event
 from app.models import BoardGame
-from app.models import GameQueueItem
 from app.models import EventRegistration
 from app.models import User
 from app.models.schemas.event import EventCreate, EventUpdate, EventResponse
 from app.utils.auth import get_current_user
+from app.services.game_queue_service import manager as queue_manager
 
 router = APIRouter(prefix="/events", tags=["events"])
 
@@ -40,9 +40,9 @@ def list_events(db: Session = Depends(get_db)):
 
 @router.post("", response_model=EventResponse, status_code=201)
 async def create_event(
-    event_data: EventCreate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+        event_data: EventCreate,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user),
 ):
     """Create a new event."""
     db_event = Event(
@@ -69,20 +69,8 @@ async def create_event(
         db.commit()
         db.refresh(db_event)
 
-        # Attach first matching queue item to this event, if exists
-        for gid in selected_ids:
-            item = (
-                db.query(GameQueueItem)
-                .filter(
-                    GameQueueItem.game_id == gid,
-                    GameQueueItem.used_in_event_id.is_(None),
-                )
-                .order_by(GameQueueItem.queue_position)
-                .first()
-            )
-            if item:
-                item.used_in_event_id = db_event.id
-        db.commit()
+        for game_id in selected_ids:
+            await queue_manager.remove(str(game_id))
 
     event_dict = EventResponse.model_validate(db_event).model_dump()
     event_dict["registered_players"] = [reg.user_id for reg in db_event.registrations]
@@ -113,10 +101,10 @@ def get_event(event_id: int, db: Session = Depends(get_db)):
 
 @router.put("/{event_id}", response_model=EventResponse)
 async def update_event(
-    event_id: int,
-    event_data: EventUpdate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+        event_id: int,
+        event_data: EventUpdate,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user),
 ):
     """Update event (organizer or admin only)."""
     event = (
@@ -151,43 +139,16 @@ async def update_event(
         to_add = list(new_ids - old_ids)
         to_remove = list(old_ids - new_ids)
 
-        # set relation (SQLAlchemy updates junction table)
         new_games = []
         if new_ids:
             new_games = db.query(BoardGame).filter(BoardGame.id.in_(list(new_ids))).all()
         event.games = new_games
 
-        # attach queue items for added games
-        for gid in to_add:
-            item = (
-                db.query(GameQueueItem)
-                .filter(
-                    GameQueueItem.game_id == gid,
-                    GameQueueItem.used_in_event_id.is_(None),
-                )
-                .order_by(GameQueueItem.queue_position)
-                .first()
-            )
-            if item:
-                item.used_in_event_id = event.id
+        for game_id in to_add:
+            await queue_manager.remove(str(game_id))
 
-        # detach queue items for removed games
-        for gid in to_remove:
-            item = (
-                db.query(GameQueueItem)
-                .filter(
-                    GameQueueItem.game_id == gid,
-                    GameQueueItem.used_in_event_id == event.id,
-                )
-                .first()
-            )
-            if item:
-                item.used_in_event_id = None
-                # return to front of global queue (your existing logic; keep as-is)
-                db.query(GameQueueItem).filter(GameQueueItem.id != item.id).update(
-                    {GameQueueItem.queue_position: GameQueueItem.queue_position + 1}
-                )
-                item.queue_position = 0
+        for game_id in to_remove:
+            await queue_manager.add(str(game_id))
 
     db.commit()
     db.refresh(event)
@@ -200,9 +161,9 @@ async def update_event(
 
 @router.delete("/{event_id}", status_code=204)
 async def delete_event(
-    event_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+        event_id: int,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user),
 ):
     """Delete event (organizer or admin only)."""
     event = db.query(Event).filter(Event.id == event_id).first()
@@ -218,9 +179,9 @@ async def delete_event(
 
 @router.post("/{event_id}/register", response_model=EventResponse)
 async def register_for_event(
-    event_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+        event_id: int,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user),
 ):
     """Register current user for an event."""
     event = (
@@ -259,9 +220,9 @@ async def register_for_event(
 
 @router.delete("/{event_id}/register", status_code=204)
 async def unregister_from_event(
-    event_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+        event_id: int,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user),
 ):
     """Unregister current user from an event."""
     event = db.query(Event).filter(Event.id == event_id).first()
@@ -285,10 +246,10 @@ async def unregister_from_event(
 
 @router.delete("/{event_id}/members/{user_id}", status_code=204)
 async def remove_event_member(
-    event_id: int,
-    user_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+        event_id: int,
+        user_id: int,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user),
 ):
     """Remove a member from an event (organizer or admin only)."""
     event = db.query(Event).filter(Event.id == event_id).first()

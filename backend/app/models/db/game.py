@@ -19,7 +19,6 @@ class BoardGame(Base):
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
     # Relationships
-    queue_items = relationship("GameQueueItem", back_populates="game", foreign_keys="GameQueueItem.game_id")
     creator = relationship("User", back_populates="custom_games", foreign_keys=[creator_id])
 
     def __repr__(self):

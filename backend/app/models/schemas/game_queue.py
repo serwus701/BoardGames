@@ -1,26 +1,12 @@
 from pydantic import BaseModel
-from datetime import datetime
-from typing import Optional
 
-
-class GameQueueItemBase(BaseModel):
-    game_id: int
-    added_by_user_id: int
-
-
-class GameQueueItemCreate(GameQueueItemBase):
-    pass
-
-
-class GameQueueItemResponse(GameQueueItemBase):
+class GameQueueItem(BaseModel):
     id: int
-    queue_position: int
-    used_in_event_id: Optional[int] = None
-    added_at: datetime
+    name: str
+    length_in_minutes: int
 
-    class Config:
-        from_attributes = True
+class GameQueueResponse(BaseModel):
+    items: list[GameQueueItem]
 
-
-class QueueReorderRequest(BaseModel):
-    items: list[dict]  # Each item should have id and queue_position
+class SimpleQueueResponse(BaseModel):
+    items: list[str]
