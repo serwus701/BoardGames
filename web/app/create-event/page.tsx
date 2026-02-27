@@ -3,7 +3,17 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { eventsAPI, queueAPI, gamesAPI } from '@/utils/api';
+import { eventsAPI, queueAPI } from '@/utils/api';
+
+interface QueueItemResponse {
+    id: number;
+    game_id?: number;
+    gameId?: number;
+    game?: {
+        id: number;
+        name: string;
+    };
+}
 
 export default function CreateEventPage() {
     const { isLoggedIn, user, token, isLoading: isAuthLoading } = useAuth();
@@ -15,8 +25,7 @@ export default function CreateEventPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const [successMessage, setSuccessMessage] = useState('');
-    const [queueItems, setQueueItems] = useState<any[]>([]);
-    const [boardGamesMap, setBoardGamesMap] = useState<Record<number, any>>({});
+    const [queueItems, setQueueItems] = useState<QueueItemResponse[]>([]);
 
     useEffect(() => {
         if (isAuthLoading) {
@@ -25,16 +34,18 @@ export default function CreateEventPage() {
         if (!isLoggedIn) {
             router.push('/login');
         }
-        // load queue + games for assignment suggestions
         (async () => {
             try {
-                const [queue, games] = await Promise.all([queueAPI.listQueue(), gamesAPI.listBoardGames()]);
-                setQueueItems(queue || []);
-                const map: Record<number, any> = {};
-                (games || []).forEach((g: any) => (map[Number(g.id)] = g));
-                setBoardGamesMap(map);
-            } catch (e) {
-                // ignore
+                const queue = await queueAPI.listQueue();
+                const normalizedQueue = Array.isArray(queue)
+                    ? queue
+                    : Array.isArray((queue as { items?: unknown[] })?.items)
+                        ? ((queue as { items?: QueueItemResponse[] }).items ?? [])
+                        : [];
+
+                setQueueItems(normalizedQueue);
+            } catch {
+                setQueueItems([]);
             }
         })();
     }, [isLoggedIn, isAuthLoading, router]);
@@ -91,7 +102,9 @@ export default function CreateEventPage() {
                 : undefined;
 
             // Auto-assign all queue items to the event
-            const autoAssignedGames = queueItems.map(qi => qi.id);
+            const autoAssignedGames = queueItems
+                .map((qi) => qi.game?.id ?? qi.game_id ?? qi.gameId)
+                .filter((gameId): gameId is number => typeof gameId === 'number');
 
             await eventsAPI.createEvent(
                 {
@@ -108,9 +121,13 @@ export default function CreateEventPage() {
             setTimeout(() => {
                 router.push('/events');
             }, 1500);
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Failed to create event:', err);
-            setError(err.data?.detail || 'Failed to create event');
+            const message =
+                err instanceof Object && 'data' in err && err.data instanceof Object && 'detail' in err.data
+                    ? String(err.data.detail)
+                    : 'Failed to create event';
+            setError(message);
         } finally {
             setIsLoading(false);
         }
@@ -138,16 +155,6 @@ export default function CreateEventPage() {
 
                 <div className="bg-white rounded-lg shadow-md p-8">
                     <form onSubmit={handleSubmit} className="space-y-6">
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                            <h3 className="font-semibold text-blue-900 mb-2">Create an Event:</h3>
-                            <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside">
-                                <li>Provide a date and time for your event</li>
-                                <li>Location will be automatically set to your home address from profile</li>
-                                <li>Optionally estimate how long the event will run (in hours)</li>
-                                <li>Other users can register and you can manage the event</li>
-                            </ol>
-                        </div>
-
                         {!user?.home_address && (
                             <div className="bg-yellow-50 border border-yellow-300 rounded-lg p-4 mb-6">
                                 <p className="text-yellow-800 font-semibold">⚠️ No home address set</p>
@@ -210,9 +217,8 @@ export default function CreateEventPage() {
                                     <p className="text-sm text-gray-500 italic">No games in queue</p>
                                 )}
                                 {queueItems.map((qi) => {
-                                    const gid = qi.game_id ?? qi.gameId;
-                                    const game = boardGamesMap[Number(gid)];
-                                    const label = game ? `${game.name}` : `Game #${gid}`;
+                                    const gid = qi.game?.id ?? qi.game_id ?? qi.gameId;
+                                    const label = qi.game?.name ?? `Game #${gid ?? qi.id}`;
                                     return (
                                         <div key={qi.id} className="flex items-center gap-2 text-sm text-gray-700">
                                             <span>{label}</span>

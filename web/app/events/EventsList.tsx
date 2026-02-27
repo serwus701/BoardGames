@@ -161,7 +161,7 @@ export const EventsList = (props: EventsListProps) => {
                                     </div>
                                 </div>
 
-                                {event.estimated_length_in_hours && (
+                                {event.estimated_length_in_minutes && (
                                     <div className="flex items-center space-x-3 text-gray-700">
                                         <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
                                             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00-.293.707l-3 3a1 1 0 101.414 1.414L9 11.414V6z" clipRule="evenodd" />
@@ -169,7 +169,7 @@ export const EventsList = (props: EventsListProps) => {
                                         <div>
                                             <p className="text-sm text-gray-500">Duration</p>
                                             <p className="font-semibold">
-                                                {event.estimated_length_in_hours} hours
+                                                {event.estimated_length_in_minutes / 60} hours
                                             </p>
                                         </div>
                                     </div>
@@ -183,6 +183,7 @@ export const EventsList = (props: EventsListProps) => {
                                             <thead>
                                                 <tr className="bg-gray-200">
                                                     <th className="border border-gray-300 px-4 py-2 text-left text-sm font-semibold">Game Name</th>
+                                                    <th className="border border-gray-300 px-4 py-2 text-left text-sm font-semibold">Game Length</th>
                                                     <th className="border border-gray-300 px-4 py-2 text-left text-sm font-semibold">Required Players</th>
                                                     <th className="border border-gray-300 px-4 py-2 text-left text-sm font-semibold">Owner</th>
                                                 </tr>
@@ -191,6 +192,7 @@ export const EventsList = (props: EventsListProps) => {
                                                 {event.selected_games.map((game: BoardGame) => (
                                                     <tr key={game.id} className="hover:bg-gray-50">
                                                         <td className="border border-gray-300 px-4 py-2 text-sm">{game.name}</td>
+                                                        <td className="border border-gray-300 px-4 py-2 text-sm">{game.lengthInHours} hrs</td>
                                                         <td className={`border border-gray-300 px-4 py-2 text-sm ${playersCountMatches(event, game) ? 'bg-green-300' : 'bg-red-300'}`}>{formatRequiredPlayers(game)}</td>
                                                         <td className={`border border-gray-300 px-4 py-2 text-sm ${gameOwnerIsRegistered(event, game) ? 'bg-green-300' : 'bg-red-300'}`}>{game.owner?.name || '-'}</td>
                                                     </tr>

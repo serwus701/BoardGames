@@ -361,7 +361,7 @@ export const queueAPI = {
      * Get all queue items
      */
     async listQueue() {
-        return apiCall<GameQueueItem[]>('/game-queue', {
+        return apiCall<BoardGame[]>('/game-queue', {
             method: 'GET',
         });
     },
