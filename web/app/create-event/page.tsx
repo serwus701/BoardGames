@@ -1,19 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { eventsAPI, queueAPI } from '@/utils/api';
+import { QueueItem } from '@/types/BoardGame';
 
-interface QueueItemResponse {
-    id: number;
-    game_id?: number;
-    gameId?: number;
-    game?: {
-        id: number;
-        name: string;
-    };
-}
 
 export default function CreateEventPage() {
     const { isLoggedIn, user, token, isLoading: isAuthLoading } = useAuth();
@@ -25,7 +17,45 @@ export default function CreateEventPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const [successMessage, setSuccessMessage] = useState('');
-    const [queueItems, setQueueItems] = useState<QueueItemResponse[]>([]);
+    const [queueItems, setQueueItems] = useState<QueueItem[]>([]);
+    const [limitedQueueItems, setLimitedQueueItems] = useState<QueueItem[]>([]);
+
+    async function fetchQueue() {
+        try {
+            const queue = await queueAPI.listQueue();
+
+            const formattedQueue = queue.map((item) => ({
+                id: item.id,
+                name: item.name,
+                lengthInHours: item.length_in_minutes / 60
+            }));
+
+            setQueueItems(formattedQueue ?? []);
+        } catch {
+            setQueueItems([]);
+        }
+    };
+
+    useEffect(() => {
+        const maxHours = formData.estimated_length_in_hours;
+        if (!maxHours) {
+            setLimitedQueueItems([]);
+            return;
+        }
+        const limitedQueue = [];
+        let accumulatedHours = 0;
+        console.log(queueItems);
+        for (const item of queueItems) {
+            console.log(item, accumulatedHours, maxHours);
+            if (accumulatedHours + item.lengthInHours <= parseFloat(maxHours)) {
+                limitedQueue.push(item);
+                accumulatedHours += item.lengthInHours;
+            } else {
+                break;
+            }
+        }
+        setLimitedQueueItems(limitedQueue);
+    }, [queueItems, formData.estimated_length_in_hours]);
 
     useEffect(() => {
         if (isAuthLoading) {
@@ -34,20 +64,7 @@ export default function CreateEventPage() {
         if (!isLoggedIn) {
             router.push('/login');
         }
-        (async () => {
-            try {
-                const queue = await queueAPI.listQueue();
-                const normalizedQueue = Array.isArray(queue)
-                    ? queue
-                    : Array.isArray((queue as { items?: unknown[] })?.items)
-                        ? ((queue as { items?: QueueItemResponse[] }).items ?? [])
-                        : [];
-
-                setQueueItems(normalizedQueue);
-            } catch {
-                setQueueItems([]);
-            }
-        })();
+        fetchQueue();
     }, [isLoggedIn, isAuthLoading, router]);
 
     if (isAuthLoading) {
@@ -96,14 +113,12 @@ export default function CreateEventPage() {
         try {
             setIsLoading(true);
 
-            // Convert hours to minutes for backend
             const estimatedMinutes = formData.estimated_length_in_hours
                 ? String(parseFloat(formData.estimated_length_in_hours) * 60)
                 : undefined;
 
-            // Auto-assign all queue items to the event
-            const autoAssignedGames = queueItems
-                .map((qi) => qi.game?.id ?? qi.game_id ?? qi.gameId)
+            const autoAssignedGames = limitedQueueItems
+                .map((queueItem) => queueItem.id)
                 .filter((gameId): gameId is number => typeof gameId === 'number');
 
             await eventsAPI.createEvent(
@@ -212,16 +227,15 @@ export default function CreateEventPage() {
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
                                 Games for next session
                             </label>
-                            <div className="space-y-2 max-h-48 overflow-auto border rounded p-3 bg-gray-50">
+                            <div className="space-y-2 max-h-48 overflow-auto border rounded p-3 bg-gray-50 text-black">
                                 {queueItems.length === 0 && (
                                     <p className="text-sm text-gray-500 italic">No games in queue</p>
                                 )}
-                                {queueItems.map((qi) => {
-                                    const gid = qi.game?.id ?? qi.game_id ?? qi.gameId;
-                                    const label = qi.game?.name ?? `Game #${gid ?? qi.id}`;
+                                {limitedQueueItems.map((queueItem) => {
                                     return (
-                                        <div key={qi.id} className="flex items-center gap-2 text-sm text-gray-700">
-                                            <span>{label}</span>
+                                        <div key={queueItem.id} className="flex items-center gap-2 text-sm text-gray-700">
+                                            <span>{queueItem.name}</span>
+                                            <span>{`(${queueItem.lengthInHours.toFixed(1)} hours)`}</span>
                                         </div>
                                     );
                                 })}
@@ -240,26 +254,6 @@ export default function CreateEventPage() {
                         </button>
                     </form>
 
-                    <div className="mt-8 p-6 bg-gray-50 rounded-lg border border-gray-200">
-                        <h3 className="text-lg font-bold text-gray-900 mb-4">Event Preview</h3>
-                        <div className="space-y-2 text-sm text-gray-700">
-                            <p>
-                                <span className="font-semibold">Organizer:</span> {user?.full_name || user?.email || 'Not logged in'}
-                            </p>
-                            <p>
-                                <span className="font-semibold">Date & Time:</span> {formData.date_time ? new Date(formData.date_time).toLocaleString() : 'Not selected'}
-                            </p>
-                            <p>
-                                <span className="font-semibold">Location:</span> {user?.home_address || 'Not set in profile'}
-                            </p>
-                            {formData.estimated_length_in_hours && (
-                                <p>
-                                    <span className="font-semibold">Duration:</span> {formData.estimated_length_in_hours} hours
-                                </p>
-                            )}
-                            <p className="text-xs text-gray-500 mt-3">You will be able to edit the date/time and duration after creation</p>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>

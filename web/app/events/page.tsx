@@ -38,7 +38,6 @@ export default function EventsPage() {
                     eventsAPI.listEvents(),
                     usersAPI.listUsers(),
                 ]);
-                console.log('Fetched events:', fetchedEvents);
 
                 const userMapping: Record<string, User> = {};
                 users.forEach((u: User) => {
