@@ -12,7 +12,7 @@ import {
 } from '@/types';
 import { Event } from '@/types/Event';
 import { User } from '@/types/User';
-import { BoardGame } from '@/types/BoardGame';
+import { BoardGame, ListQueueResponse, QueueItem } from '@/types/BoardGame';
 export class APIError extends Error {
     constructor(
         public status: number,
@@ -361,9 +361,8 @@ export const queueAPI = {
      * Get all queue items
      */
     async listQueue() {
-        return apiCall<BoardGame[]>('/game-queue', {
-            method: 'GET',
-        });
+        const res = await apiCall<ListQueueResponse>('/game-queue', { method: 'GET' });
+        return res.items;
     },
 
     /**
@@ -376,7 +375,7 @@ export const queueAPI = {
         },
         token: string
     ) {
-        return apiCall<GameQueueItem>('/game-queue', {
+        return apiCall<QueueItem>('/game-queue', {
             method: 'POST',
             body: JSON.stringify(item),
             token,
