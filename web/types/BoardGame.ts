@@ -1,6 +1,8 @@
+import { User } from "./User";
+
 export interface BoardGame extends EventGame {
     id: number;
-    ownerId: number;
+    owner: User;
 }
 
 export interface EventGame {

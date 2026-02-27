@@ -20,7 +20,8 @@ def list_events(db: Session = Depends(get_db)):
         db.query(Event)
         .options(
             joinedload(Event.registrations).joinedload(EventRegistration.user),
-            joinedload(Event.games),
+            joinedload(Event.games).joinedload(BoardGame.creator),
+            joinedload(Event.organizer),
         )
         .order_by(Event.date_time)
         .all()
@@ -30,8 +31,9 @@ def list_events(db: Session = Depends(get_db)):
     for event in events:
         event_dict = EventResponse.model_validate(event).model_dump()
 
-        event_dict["registered_players"] = [reg.user_id for reg in event.registrations]
-        event_dict["selected_games"] = [g.id for g in event.games]
+        event_dict["registered_players"] = [reg.user for reg in event.registrations]
+        event_dict["selected_games"] = event.games
+        event_dict["organizer"] = event.organizer
 
         response.append(event_dict)
 
@@ -73,8 +75,9 @@ async def create_event(
             await queue_manager.remove(str(game_id))
 
     event_dict = EventResponse.model_validate(db_event).model_dump()
-    event_dict["registered_players"] = [reg.user_id for reg in db_event.registrations]
-    event_dict["selected_games"] = [g.id for g in db_event.games]
+    event_dict["registered_players"] = [reg.user for reg in db_event.registrations]
+    event_dict["selected_games"] = db_event.games
+    event_dict["organizer"] = db_event.organizer
     return event_dict
 
 
@@ -85,7 +88,8 @@ def get_event(event_id: int, db: Session = Depends(get_db)):
         db.query(Event)
         .options(
             joinedload(Event.registrations).joinedload(EventRegistration.user),
-            joinedload(Event.games),
+            joinedload(Event.games).joinedload(BoardGame.creator),
+            joinedload(Event.organizer),
         )
         .filter(Event.id == event_id)
         .first()
@@ -94,8 +98,9 @@ def get_event(event_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Event not found")
 
     event_dict = EventResponse.model_validate(event).model_dump()
-    event_dict["registered_players"] = [reg.user_id for reg in event.registrations]
-    event_dict["selected_games"] = [g.id for g in event.games]
+    event_dict["registered_players"] = [reg.user for reg in event.registrations]
+    event_dict["selected_games"] = event.games
+    event_dict["organizer"] = event.organizer
     return event_dict
 
 
@@ -110,8 +115,9 @@ async def update_event(
     event = (
         db.query(Event)
         .options(
-            joinedload(Event.registrations),
-            joinedload(Event.games),
+            joinedload(Event.registrations).joinedload(EventRegistration.user),
+            joinedload(Event.games).joinedload(BoardGame.creator),
+            joinedload(Event.organizer),
         )
         .filter(Event.id == event_id)
         .first()
@@ -154,8 +160,9 @@ async def update_event(
     db.refresh(event)
 
     event_dict = EventResponse.model_validate(event).model_dump()
-    event_dict["registered_players"] = [reg.user_id for reg in event.registrations]
-    event_dict["selected_games"] = [g.id for g in event.games]
+    event_dict["registered_players"] = [reg.user for reg in event.registrations]
+    event_dict["selected_games"] = event.games
+    event_dict["organizer"] = event.organizer
     return event_dict
 
 
@@ -187,8 +194,9 @@ async def register_for_event(
     event = (
         db.query(Event)
         .options(
-            joinedload(Event.registrations),
-            joinedload(Event.games),
+            joinedload(Event.registrations).joinedload(EventRegistration.user),
+            joinedload(Event.games).joinedload(BoardGame.creator),
+            joinedload(Event.organizer),
         )
         .filter(Event.id == event_id)
         .first()
@@ -213,8 +221,9 @@ async def register_for_event(
     db.refresh(event)
 
     event_dict = EventResponse.model_validate(event).model_dump()
-    event_dict["registered_players"] = [reg.user_id for reg in event.registrations]
-    event_dict["selected_games"] = [g.id for g in event.games]
+    event_dict["registered_players"] = [reg.user for reg in event.registrations]
+    event_dict["selected_games"] = event.games
+    event_dict["organizer"] = event.organizer
     return event_dict
 
 

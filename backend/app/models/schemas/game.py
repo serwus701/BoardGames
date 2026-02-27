@@ -1,6 +1,15 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 from datetime import datetime
 from typing import List, Optional, Literal
+
+
+class BoardGameOwner(BaseModel):
+    id: int
+    name: str
+    email: str
+
+    class Config:
+        from_attributes = True
 
 
 class BoardGameBase(BaseModel):
@@ -27,11 +36,52 @@ class BoardGameUpdate(BaseModel):
     valid_player_counts: Optional[List[int]] = None
 
 
-class BoardGameResponse(BoardGameBase):
+class BoardGameResponse(BaseModel):
     id: int
-    created_at: datetime
-    creator_id: Optional[int] = None
-    updated_at: Optional[datetime] = None
+    owner: BoardGameOwner
+    name: str
+    playerCountsType: Literal['exact', 'minMax', 'minOnly']
+    playerCountsExact: List[int]
+    playerCountsMin: int
+    playerCountsMax: int
+    lengthInHours: float
+
+    @model_validator(mode="before")
+    @classmethod
+    def from_board_game_model(cls, value):
+        if isinstance(value, dict):
+            if value.get("owner") is None:
+                value["owner"] = {
+                    "id": 0,
+                    "name": "System",
+                    "email": "system@local",
+                }
+            return value
+
+        player_count_type_mapping = {
+            "specific": "exact",
+            "range": "minMax",
+            "minimum": "minOnly",
+        }
+
+        minutes = getattr(value, "length_in_minutes", None) or 0
+        creator = getattr(value, "creator", None)
+        owner = creator or {
+            "id": 0,
+            "name": "System",
+            "email": "system@local",
+        }
+
+        return {
+            "id": value.id,
+            "owner": owner,
+            "name": value.name,
+            "playerCountsType": player_count_type_mapping.get(getattr(value, "player_count_type", "specific"), "exact"),
+            "playerCountsExact": getattr(value, "valid_player_counts", None) or [],
+            "playerCountsMin": getattr(value, "min_players", None) or 0,
+            "playerCountsMax": getattr(value, "max_players", None) or 0,
+            "lengthInHours": round(minutes / 60, 2),
+        }
 
     class Config:
         from_attributes = True

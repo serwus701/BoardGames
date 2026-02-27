@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from typing import List
 
 from app.database import get_db
@@ -21,7 +21,7 @@ router = APIRouter(prefix="/games", tags=["games"])
 @router.get("/board-games", response_model=List[BoardGameResponse])
 def list_board_games(db: Session = Depends(get_db)):
     """List all board games."""
-    games = db.query(BoardGame).all()
+    games = db.query(BoardGame).options(joinedload(BoardGame.creator)).all()
     return games
 
 
@@ -46,7 +46,12 @@ async def create_board_game(
 def list_custom_games(db: Session = Depends(get_db)):
     """List all custom games."""
     # Custom games are stored in the same `board_games` table with a non-null `creator_id`
-    games = db.query(BoardGame).filter(BoardGame.creator_id.isnot(None)).all()
+    games = (
+        db.query(BoardGame)
+        .options(joinedload(BoardGame.creator))
+        .filter(BoardGame.creator_id.isnot(None))
+        .all()
+    )
     return games
 
 
@@ -74,7 +79,12 @@ async def create_custom_game(
 @router.get("/custom-games/{game_id}", response_model=CustomGameResponse)
 def get_custom_game(game_id: int, db: Session = Depends(get_db)):
     """Get custom game by ID."""
-    game = db.query(BoardGame).filter(BoardGame.id == game_id, BoardGame.creator_id.isnot(None)).first()
+    game = (
+        db.query(BoardGame)
+        .options(joinedload(BoardGame.creator))
+        .filter(BoardGame.id == game_id, BoardGame.creator_id.isnot(None))
+        .first()
+    )
     if not game:
         raise HTTPException(status_code=404, detail="Game not found")
     return game
