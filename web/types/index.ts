@@ -25,14 +25,3 @@ export interface SharedGameInstance {
     addedAt: Date;
 }
 
-export interface GameQueueItem {
-    id: string;
-    gameInstanceId: string;
-    gameId: string;
-    addedByName: string;
-    addedAt: Date;
-    usedInEventId?: string;
-    usedAt?: Date;
-}
-
-
