@@ -3,12 +3,12 @@ from sqlalchemy.orm import Session, joinedload
 from typing import List
 
 from app.database import get_db
-from app.models.event import Event
-from app.models.game import BoardGame
-from app.models.game_queue import GameQueueItem
-from app.models.event_registration import EventRegistration
-from app.models.user import User
-from app.schemas.event import EventCreate, EventUpdate, EventResponse
+from app.models import Event
+from app.models import BoardGame
+from app.models import GameQueueItem
+from app.models import EventRegistration
+from app.models import User
+from app.models.schemas.event import EventCreate, EventUpdate, EventResponse
 from app.utils.auth import get_current_user
 
 router = APIRouter(prefix="/events", tags=["events"])

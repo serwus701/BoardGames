@@ -8,3 +8,4 @@ fastapi
 bcrypt==3.2.2
 uvicorn
 email-validator
+httpx

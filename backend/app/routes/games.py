@@ -1,16 +1,20 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+import httpx
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List
 
 from app.database import get_db
-from app.models.game import BoardGame
-from app.models.user import User
-from app.schemas.game import (
+from app.models import BoardGame
+from app.models import User
+from app.models.schemas.game import (
     BoardGameCreate, BoardGameResponse,
-    CustomGameCreate, CustomGameUpdate, CustomGameResponse
+    CustomGameCreate, CustomGameUpdate, CustomGameResponse,
+    BoardGameUpdate
 )
-from app.schemas.game import BoardGameUpdate
 from app.utils.auth import get_current_user
+
+import xml.etree.ElementTree as ET
+import os
 
 router = APIRouter(prefix="/games", tags=["games"])
 
@@ -166,3 +170,47 @@ async def update_board_game(
     return game
 
 
+@router.get("/bgg-search")
+async def search_bgg_games(query: str = Query(..., min_length=2, description="BGG search query")):
+    bgg_api_url = "https://boardgamegeek.com/xmlapi2/search"
+
+    params = {
+        "query": query,
+        "type": "boardgame"
+    }
+    headers = {
+        "authorization": f"Bearer {os.environ['BGG_API_KEY']}"
+    }
+
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(bgg_api_url, params=params, timeout=10.0)
+            response.raise_for_status()
+        except httpx.HTTPError as e:
+            raise HTTPException(status_code=502, detail=f"BGG API communication error: {str(e)}")
+
+    # Parsowanie odpowiedzi XML
+    try:
+        root = ET.fromstring(response.content)
+    except ET.ParseError:
+        raise HTTPException(status_code=500, detail="BGG API data parsing error: Invalid XML response")
+
+    results = []
+
+    # Iteracja po każdym elemencie <item> w odpowiedzi XML
+    for item in root.findall("item"):
+        bgg_id = item.get("id")
+
+        name_elem = item.find("name")
+        year_elem = item.find("yearpublished")
+
+        game_name = name_elem.get("value") if name_elem is not None else "Brak nazwy"
+        year_published = year_elem.get("value") if year_elem is not None else None
+
+        results.append({
+            "bgg_id": bgg_id,
+            "name": game_name,
+            "year_published": year_published
+        })
+
+    return {"results": results}
