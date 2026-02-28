@@ -28,8 +28,7 @@ export default function Navbar() {
                         <span className="font-bold text-xl text-gray-900">BoardGames</span>
                     </Link>
 
-                    {/* Navigation Links */}
-                    {isLoggedIn ? (
+                    {isLoggedIn && (
                         <div className="flex items-center space-x-8">
                             <div className="flex space-x-6">
                                 <Link href="/events" className="text-gray-700 hover:text-blue-600 font-medium transition-colors">
@@ -100,15 +99,6 @@ export default function Navbar() {
                                     </div>
                                 )}
                             </div>
-                        </div>
-                    ) : (
-                        <div className="flex items-center space-x-4">
-                            <Link href="/login" className="text-gray-700 hover:text-blue-600 font-medium transition-colors">
-                                Login
-                            </Link>
-                            <Link href="/register" className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg transition-colors">
-                                Register
-                            </Link>
                         </div>
                     )}
                 </div>

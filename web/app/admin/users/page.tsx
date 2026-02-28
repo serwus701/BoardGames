@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { usersAPI } from '@/utils/api';
+import { usersAPI } from '@/services/userApi';
 import { AuthUser } from '@/types/auth';
 
 interface EditingUser {
@@ -11,7 +11,7 @@ interface EditingUser {
     name: string;
     email: string;
     homeAddress: string;
-    role: 'head-admin' | 'user';
+    role: 'head-admin' | 'admin' | 'user';
 }
 
 export default function UsersManagementPage() {
@@ -81,9 +81,9 @@ export default function UsersManagementPage() {
     const handleEditClick = (userData: AuthUser) => {
         setEditingUser({
             id: userData.id,
-            name: userData.name,
+            name: userData.name || userData.full_name || '',
             email: userData.email,
-            homeAddress: userData.homeAddress,
+            homeAddress: userData.homeAddress || '',
             role: userData.role
         });
     };
@@ -117,8 +117,7 @@ export default function UsersManagementPage() {
                 {
                     name: editingUser.name,
                     email: editingUser.email,
-                    home_address: editingUser.homeAddress
-                },
+                } as any,
                 token
             );
 
@@ -201,9 +200,8 @@ export default function UsersManagementPage() {
                 {
                     name: userToUpdate.name,
                     email: userToUpdate.email,
-                    home_address: userToUpdate.homeAddress,
                     role: newRole
-                },
+                } as any,
                 token
             );
 
@@ -352,9 +350,9 @@ export default function UsersManagementPage() {
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
                                                 <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold">
-                                                    {userData.name.charAt(0)}
+                                                    {(userData.name || 'U').charAt(0)}
                                                 </div>
-                                                <span className="font-semibold text-gray-900">{userData.name}</span>
+                                                <span className="font-semibold text-gray-900">{userData.name || 'Unknown'}</span>
                                                 {userData.id === user?.id && (
                                                     <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
                                                         You
@@ -392,7 +390,7 @@ export default function UsersManagementPage() {
                                                 </button>
                                                 {userData.id !== user?.id && (
                                                     <button
-                                                        onClick={() => handleDeleteUser(userData.id, userData.name)}
+                                                        onClick={() => handleDeleteUser(userData.id, userData.name || 'Unknown User')}
                                                         className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded transition-colors"
                                                     >
                                                         Delete
