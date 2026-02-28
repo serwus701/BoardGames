@@ -37,16 +37,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
             const response = await authAPI.login(email, password);
 
-            // Store token
             setToken(response.access_token);
             localStorage.setItem('authToken', response.access_token);
 
-            // Store user data directly from backend
             const userData: AuthUser = {
                 ...response.user,
-                // Legacy compatibility
-                name: response.user.full_name || response.user.email,
-                homeAddress: response.user.home_address
+                homeAddress: response.user.home_address || '',
             };
 
             setUser(userData);
@@ -75,9 +71,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             // Store user data directly from backend
             const userData: AuthUser = {
                 ...response.user,
-                // Legacy compatibility
-                name: response.user.full_name || response.user.email,
-                homeAddress: response.user.home_address
+                homeAddress: response.user.home_address || '',
             };
 
             setUser(userData);
@@ -104,9 +98,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const updatedUserData = await usersAPI.getCurrentUser(currentToken);
             const userData: AuthUser = {
                 ...updatedUserData,
-                // Legacy compatibility
-                name: updatedUserData.full_name || updatedUserData.email,
-                homeAddress: updatedUserData.home_address
+                homeAddress: updatedUserData.home_address || '',
             };
 
             setUser(userData);

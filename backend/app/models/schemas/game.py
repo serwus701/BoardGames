@@ -16,7 +16,7 @@ class BoardGameBase(BaseModel):
     name: str
     description: Optional[str] = None
     length_in_minutes: int
-    player_count_type: Literal['specific', 'range', 'minimum'] = 'specific'
+    player_count_type: Literal['exact', 'minMax', 'minOnly']
     min_players: Optional[int] = None
     max_players: Optional[int] = None
     valid_player_counts: Optional[List[int]] = None
@@ -30,7 +30,7 @@ class BoardGameUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     length_in_minutes: Optional[int] = None
-    player_count_type: Optional[Literal['specific', 'range', 'minimum']] = None
+    player_count_type: Optional[Literal['exact', 'minMax', 'minOnly']] = None
     min_players: Optional[int] = None
     max_players: Optional[int] = None
     valid_player_counts: Optional[List[int]] = None
@@ -58,11 +58,6 @@ class BoardGameResponse(BaseModel):
                 }
             return value
 
-        player_count_type_mapping = {
-            "specific": "exact",
-            "range": "minMax",
-            "minimum": "minOnly",
-        }
 
 
         creator = getattr(value, "creator", None)
@@ -76,7 +71,7 @@ class BoardGameResponse(BaseModel):
             "id": value.id,
             "owner": owner,
             "name": value.name,
-            "playerCountsType": player_count_type_mapping.get(getattr(value, "player_count_type", "specific"), "exact"),
+            "playerCountsType": getattr(value, "player_count_type", None),
             "playerCountsExact": getattr(value, "valid_player_counts", None) or [],
             "playerCountsMin": getattr(value, "min_players", None) or 0,
             "playerCountsMax": getattr(value, "max_players", None) or 0,
@@ -89,7 +84,7 @@ class BoardGameResponse(BaseModel):
 
 class GameBase(BaseModel):
     name: str
-    player_count_type: Literal['specific', 'range', 'minimum'] = 'specific'
+    player_count_type: Literal['exact', 'minMax', 'minOnly']
     min_players: Optional[int] = None
     max_players: Optional[int] = None
     valid_player_counts: Optional[List[int]] = None
@@ -98,7 +93,7 @@ class GameBase(BaseModel):
 
 class GameUpdate(BaseModel):
     name: Optional[str] = None
-    player_count_type: Optional[Literal['specific', 'range', 'minimum']] = None
+    player_count_type: Optional[Literal['exact', 'minMax', 'minOnly']] = None
     min_players: Optional[int] = None
     max_players: Optional[int] = None
     valid_player_counts: Optional[List[int]] = None

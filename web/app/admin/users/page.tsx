@@ -40,12 +40,14 @@ export default function UsersManagementPage() {
             const userData = await usersAPI.listUsers();
             const formattedUsers = userData.map((u: any) => ({
                 id: u.id,
-                name: u.full_name || u.email,
+                name: u.name,
                 email: u.email,
                 homeAddress: u.home_address || '',
-                role: u.role || 'user',
+                role: u.role,
                 phone: u.phone,
-                bio: u.bio
+                bio: u.bio,
+                created_at: u.created_at,
+                updated_at: u.updated_at,
             }));
             setUsers(formattedUsers);
         } catch (error) {
@@ -81,7 +83,7 @@ export default function UsersManagementPage() {
     const handleEditClick = (userData: AuthUser) => {
         setEditingUser({
             id: userData.id,
-            name: userData.name || userData.full_name || '',
+            name: userData.name,
             email: userData.email,
             homeAddress: userData.homeAddress || '',
             role: userData.role

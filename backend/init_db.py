@@ -75,7 +75,7 @@ def init_sample_data():
             name="Dune",
             description="A strategic game of politics and intrigue",
             length_in_minutes=120,
-            player_count_type="specific",
+            player_count_type="exact",
             valid_player_counts=[1, 3, 4, 6],
             creator_id=1
         )
@@ -83,7 +83,7 @@ def init_sample_data():
             name="Catan",
             description="Build settlements on the island of Catan",
             length_in_minutes=60,
-            player_count_type="specific",
+            player_count_type="exact",
             valid_player_counts=[3, 4],
             creator_id=1
         )
@@ -91,7 +91,7 @@ def init_sample_data():
             name="Carcassonne",
             description="Build a medieval landscape tile by tile",
             length_in_minutes=45,
-            player_count_type="range",
+            player_count_type="minMax",
             min_players=2,
             max_players=6,
             creator_id=1
@@ -101,7 +101,7 @@ def init_sample_data():
             name="Ticket to Ride",
             description="Claim railway routes across continents",
             length_in_minutes=90,
-            player_count_type="range",
+            player_count_type="minMax",
             min_players=2,
             max_players=5,
             creator_id=1
@@ -111,7 +111,7 @@ def init_sample_data():
             name="Azul",
             description="Create beautiful tile patterns",
             length_in_minutes=30,
-            player_count_type="specific",
+            player_count_type="exact",
             valid_player_counts=[2, 3, 4],
             creator_id=1
 
@@ -120,7 +120,7 @@ def init_sample_data():
             name="Wingspan",
             description="Build the best bird sanctuary",
             length_in_minutes=70,
-            player_count_type="range",
+            player_count_type="minMax",
             min_players=1,
             max_players=5,
             creator_id=1
@@ -130,7 +130,7 @@ def init_sample_data():
             name="7 Wonders",
             description="Lead your civilization to greatness",
             length_in_minutes=30,
-            player_count_type="range",
+            player_count_type="minMax",
             min_players=2,
             max_players=7,
             creator_id=1
@@ -140,7 +140,7 @@ def init_sample_data():
             name="Pandemic",
             description="Save humanity from deadly diseases",
             length_in_minutes=45,
-            player_count_type="range",
+            player_count_type="minMax",
             min_players=2,
             max_players=4,
             creator_id=1
@@ -150,7 +150,7 @@ def init_sample_data():
             name="Codenames",
             description="Word-based party game",
             length_in_minutes=15,
-            player_count_type="minimum",
+            player_count_type="minOnly",
             min_players=4,
             creator_id=1
 
@@ -159,7 +159,7 @@ def init_sample_data():
             name="Splendor",
             description="Become a Renaissance merchant",
             length_in_minutes=30,
-            player_count_type="specific",
+            player_count_type="exact",
             valid_player_counts=[2, 3, 4],
             creator_id=1
 
@@ -174,7 +174,7 @@ def init_sample_data():
         # --- Custom (user) game ---
         custom_game = BoardGame(
             name="Homebrew Dice Game",
-            player_count_type="specific",
+            player_count_type="exact",
             valid_player_counts=[2, 3, 4],
             length_in_minutes=45,
             creator_id=user2.id,

@@ -109,11 +109,8 @@ async def create_board_game(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Create a new board game (admin only)."""
-    if current_user.role != "head-admin":
-        raise HTTPException(status_code=403, detail="Only admins can create board games")
-    
-    db_game = BoardGame(**game.dict())
+
+    db_game = BoardGame(**game.model_dump(), creator_id=current_user.id)
     db.add(db_game)
     db.commit()
     db.refresh(db_game)
@@ -167,7 +164,7 @@ async def update_board_game(
     return game
 
 
-@router.delete("{game_id}", status_code=204)
+@router.delete("/{game_id}", status_code=204)
 async def delete_custom_game(
     game_id: int,
     db: Session = Depends(get_db),

@@ -5,14 +5,6 @@
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
-import {
-    CustomGame,
-    SharedGameInstance,
-    GameQueueItem,
-} from '@/types';
-import { Event } from '@/types/Event';
-import { User } from '@/types/User';
-import { BoardGame, ListQueueResponse, QueueItem } from '@/types/BoardGame';
 export class APIError extends Error {
     constructor(
         public status: number,
@@ -23,7 +15,7 @@ export class APIError extends Error {
     }
 }
 
-export async function apiCall<T extends unknown>(
+export async function apiCall<T>(
     path: string,
     options: RequestInit & { token?: string } = {}
 ): Promise<T> {
@@ -31,12 +23,9 @@ export async function apiCall<T extends unknown>(
 
     const headers: HeadersInit = {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
         ...fetchOptions.headers,
     };
-
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-    }
 
     const response = await fetch(`${API_URL}${path}`, {
         ...fetchOptions,

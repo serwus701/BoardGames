@@ -1,4 +1,5 @@
 import { apiCall } from './baseApi';
+import { Event } from '@/types/Event';
 
 export const eventsAPI = {
 

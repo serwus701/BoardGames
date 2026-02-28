@@ -63,10 +63,11 @@ async def create_event(
     db.add(registration)
     db.commit()
 
-    queue_game_ids = await queue_manager.get_all()
+    queue_items = await queue_manager.get_all()
+    game_ids = [item.game_id for item in queue_items]
 
-    if queue_game_ids:
-        queued_games = db.query(BoardGame).filter(BoardGame.id.in_(queue_game_ids)).all()
+    if game_ids:
+        queued_games = db.query(BoardGame).filter(BoardGame.id.in_(game_ids)).all()
 
         game_map = {game.id: game.length_in_minutes for game in queued_games}
 
@@ -74,7 +75,7 @@ async def create_event(
         total_duration = 0
         limit = int(event_data.estimated_length_in_minutes)
 
-        for game_id in queue_game_ids:
+        for game_id in game_ids:
             duration = game_map.get(int(game_id))
             if not duration:
                 continue
