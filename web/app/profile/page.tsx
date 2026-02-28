@@ -45,10 +45,6 @@ export default function ProfilePage() {
         }));
     };
 
-    const handleGameToggle = (gameId: string) => {
-        // No longer needed - we're not storing games in user profile
-    };
-
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -113,7 +109,7 @@ export default function ProfilePage() {
                 {user && (
                     <div className="bg-white rounded-lg shadow-md overflow-hidden">
                         {/* Profile Header */}
-                        <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-8">
+                        <div className="from-blue-600 to-blue-700 text-white p-8">
                             <div className="flex items-center space-x-4">
                                 <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center">
                                     <span className="text-2xl font-bold text-blue-600">
