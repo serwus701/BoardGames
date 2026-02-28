@@ -48,3 +48,5 @@ htmlcov/
 # Misc
 *.tmp
 .env.backup
+
+queue_state.json

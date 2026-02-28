@@ -1,7 +1,7 @@
 import { useAuth } from "@/context/AuthContext";
 import { EventGameForm } from "@/types/BoardGame";
 import { gamesAPI } from "@/services/gamesApi";
-import { useState } from "react";
+import React, { useState } from "react";
 
 interface AddGameProps {
     setErrorMessage: (msg: string) => void;
@@ -11,7 +11,7 @@ interface AddGameProps {
 
 const baseEventGameForm: EventGameForm = {
     name: '',
-    playerCountsType: 'range',
+    playerCountsType: 'exact',
     playerCountsExact: [1, 2],
     playerCountsMin: 0,
     playerCountsMax: 0,
@@ -70,10 +70,10 @@ export const AddGame = (props: AddGameProps) => {
     };
 
     const handleNewGameInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target;
+        const { name, value, type } = e.target;
         setNewGameForm((prev) => ({
             ...prev,
-            [name]: value
+            [name]: type === 'number' ? parseFloat(value) || 0 : value
         }));
     };
 
@@ -83,12 +83,12 @@ export const AddGame = (props: AddGameProps) => {
             return;
         }
 
-        if (newGameForm.playerCountsType === 'specific') {
+        if (newGameForm.playerCountsType === 'exact') {
             if (newGameForm.playerCountsExact.length === 0) {
                 setErrorMessage('Please enter valid player counts (comma separated, e.g., 2, 3, 4)');
                 return;
             }
-        } else if (newGameForm.playerCountsType === 'range') {
+        } else if (newGameForm.playerCountsType === 'minMax') {
             const min = newGameForm.playerCountsMin;
             const max = newGameForm.playerCountsMax;
 
@@ -102,7 +102,7 @@ export const AddGame = (props: AddGameProps) => {
                 return;
             }
 
-        } else if (newGameForm.playerCountsType === 'minimum') {
+        } else if (newGameForm.playerCountsType === 'minOnly') {
             const min = newGameForm.playerCountsMin;
 
             if (isNaN(min) || min < 1) {
@@ -129,17 +129,27 @@ export const AddGame = (props: AddGameProps) => {
         const lengthInMinutes = Math.round(newGameForm.lengthInHours * 60);
 
         try {
-            const apiResponse = await gamesAPI.createBoardGame(
-                {
-                    name: newGameForm.name,
-                    length_in_minutes: lengthInMinutes,
-                    player_count_type: newGameForm.playerCountsType,
-                    min_players: newGameForm.playerCountsMin,
-                    max_players: newGameForm.playerCountsMax,
-                    valid_player_counts: newGameForm.playerCountsExact
-                },
-                token
-            );
+            const payload = {
+                name: newGameForm.name,
+                length_in_minutes: lengthInMinutes,
+                player_count_type: newGameForm.playerCountsType,
+
+                min_players:
+                    newGameForm.playerCountsType === 'minMax' || newGameForm.playerCountsType === 'minOnly'
+                        ? newGameForm.playerCountsMin
+                        : 0,
+                max_players:
+                    newGameForm.playerCountsType === 'minMax'
+                        ? newGameForm.playerCountsMax
+                        : 0,
+
+                valid_player_counts:
+                    newGameForm.playerCountsType === 'exact'
+                        ? newGameForm.playerCountsExact
+                        : [],
+            };
+
+            const apiResponse = await gamesAPI.createBoardGame(payload, token);
 
             refreshGamesList()
 
@@ -167,7 +177,7 @@ export const AddGame = (props: AddGameProps) => {
     return (
         <>
             <div className="bg-white rounded-lg shadow-md overflow-hidden mb-8">
-                <div className="bg-gradient-to-r from-purple-600 to-purple-700 text-white p-6">
+                <div className="bg-linear-to-r from-purple-600 to-purple-700 text-white p-6">
                     <div className="flex justify-between items-center">
                         <div>
                             <h2 className="text-2xl font-bold">
@@ -217,8 +227,8 @@ export const AddGame = (props: AddGameProps) => {
                                                 type="radio"
                                                 name="playerCountsType"
                                                 value="range"
-                                                checked={newGameForm.playerCountsType === 'range'}
-                                                onChange={(e) => setNewGameForm(prev => ({ ...prev, playerCountsType: 'range' as const }))}
+                                                checked={newGameForm.playerCountsType === 'minMax'}
+                                                onChange={() => setNewGameForm(prev => ({ ...prev, playerCountsType: 'minMax' as const }))}
                                                 className="w-4 h-4 text-purple-600"
                                             />
                                             <span className="ml-2 text-sm text-gray-700">Min-Max range (e.g., 2-6 players)</span>
@@ -229,8 +239,8 @@ export const AddGame = (props: AddGameProps) => {
                                                 type="radio"
                                                 name="playerCountsType"
                                                 value="minimum"
-                                                checked={newGameForm.playerCountsType === 'minimum'}
-                                                onChange={(e) => setNewGameForm(prev => ({ ...prev, playerCountsType: 'minimum' as const }))}
+                                                checked={newGameForm.playerCountsType === 'minOnly'}
+                                                onChange={() => setNewGameForm(prev => ({ ...prev, playerCountsType: 'minOnly' as const }))}
                                                 className="w-4 h-4 text-purple-600"
                                             />
                                             <span className="ml-2 text-sm text-gray-700">Minimum only (e.g., 2+ players)</span>
@@ -240,15 +250,15 @@ export const AddGame = (props: AddGameProps) => {
                                                 type="radio"
                                                 name="playerCountsType"
                                                 value="specific"
-                                                checked={newGameForm.playerCountsType === 'specific'}
-                                                onChange={(e) => setNewGameForm(prev => ({ ...prev, playerCountsType: 'specific' as const }))}
+                                                checked={newGameForm.playerCountsType === 'exact'}
+                                                onChange={() => setNewGameForm(prev => ({ ...prev, playerCountsType: 'exact' as const }))}
                                                 className="w-4 h-4 text-purple-600"
                                             />
                                             <span className="ml-2 text-sm text-gray-700">Specific values (e.g., 2, 3, 5, 6)</span>
                                         </label>
                                     </div>
 
-                                    {newGameForm.playerCountsType === 'specific' && (
+                                    {newGameForm.playerCountsType === 'exact' && (
                                         <div>
                                             <div className="flex flex-row">
                                                 {newGameForm.playerCountsExact.map((value, idx) => (
@@ -271,14 +281,14 @@ export const AddGame = (props: AddGameProps) => {
                                         </div>
                                     )}
 
-                                    {newGameForm.playerCountsType === 'range' && (
+                                    {newGameForm.playerCountsType === 'minMax' && (
                                         <div className="grid grid-cols-2 gap-3">
                                             <div>
                                                 <input
                                                     type="number"
                                                     min="1"
                                                     value={newGameForm.playerCountsMin}
-                                                    onChange={(e) => setNewGameForm(prev => ({ ...prev, playerCountsMin: e.target.value }))}
+                                                    onChange={(e) => setNewGameForm(prev => ({ ...prev, playerCountsMin: parseInt(e.target.value, 10) || 0 }))}
                                                     placeholder="Min players"
                                                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                                                 />
@@ -288,7 +298,7 @@ export const AddGame = (props: AddGameProps) => {
                                                     type="number"
                                                     min="1"
                                                     value={newGameForm.playerCountsMax}
-                                                    onChange={(e) => setNewGameForm(prev => ({ ...prev, playerCountsMax: e.target.value }))}
+                                                    onChange={(e) => setNewGameForm(prev => ({ ...prev, playerCountsMax: parseInt(e.target.value, 10) || 0 }))}
                                                     placeholder="Max players"
                                                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                                                 />
@@ -296,13 +306,13 @@ export const AddGame = (props: AddGameProps) => {
                                         </div>
                                     )}
 
-                                    {newGameForm.playerCountsType === 'minimum' && (
+                                    {newGameForm.playerCountsType === 'minOnly' && (
                                         <div>
                                             <input
                                                 type="number"
                                                 min="1"
                                                 value={newGameForm.playerCountsMin}
-                                                onChange={(e) => setNewGameForm(prev => ({ ...prev, playerCountsMin: e.target.value }))}
+                                                onChange={(e) => setNewGameForm(prev => ({ ...prev, playerCountsMin: parseInt(e.target.value, 10) || 0 }))}
                                                 placeholder="Minimum players"
                                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                                             />

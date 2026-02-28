@@ -107,7 +107,7 @@ export default function GameQueueManagementPage() {
         const newQueueItem: QueueItem = {
             id: selectedGame.id,
             name: selectedGame.name,
-            lengthInHours: selectedGame.lengthInHours,
+            lengthInHours: selectedGame.lengthInMinutes / 60,
         };
 
         setQueue([...queue, newQueueItem]);
@@ -249,7 +249,7 @@ export default function GameQueueManagementPage() {
                                                 <h3 className="text-lg font-bold text-gray-900">
                                                     {item.name}
                                                 </h3>
-                                                <h2>{item.lengthInHours.toFixed(1)} hours</h2>
+                                                <h2>{item.lengthInHours.toFixed(1)} minutes</h2>
                                             </div>
 
                                             <p className="text-sm text-gray-600 mt-1">

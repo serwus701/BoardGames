@@ -99,7 +99,7 @@ export default function CreateEventPage() {
             return;
         }
 
-        if (!user?.home_address) {
+        if (!user?.homeAddress) {
             setError('Please set your home address in your profile first');
             return;
         }
@@ -123,7 +123,7 @@ export default function CreateEventPage() {
             await eventsAPI.createEvent(
                 {
                     date_time: formData.date_time,
-                    location: user.home_address,
+                    location: user.homeAddress,
                     organizer_id: user.id,
                     estimated_length_in_minutes: estimatedMinutes,
                     selected_games: autoAssignedGames
@@ -169,7 +169,7 @@ export default function CreateEventPage() {
 
                 <div className="bg-white rounded-lg shadow-md p-8">
                     <form onSubmit={handleSubmit} className="space-y-6">
-                        {!user?.home_address && (
+                        {!user?.homeAddress && (
                             <div className="bg-yellow-50 border border-yellow-300 rounded-lg p-4 mb-6">
                                 <p className="text-yellow-800 font-semibold">⚠️ No home address set</p>
                                 <p className="text-sm text-yellow-700 mt-1">
@@ -199,7 +199,7 @@ export default function CreateEventPage() {
                                 Location (from your profile)
                             </label>
                             <div className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700">
-                                {user?.home_address || 'Not set - please update your profile'}
+                                {user?.homeAddress || 'Not set - please update your profile'}
                             </div>
                             <p className="text-xs text-gray-500 mt-1">Update your home address in your profile to change this</p>
                         </div>

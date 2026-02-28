@@ -10,7 +10,7 @@ class Event(Base):
     date_time = Column(DateTime, nullable=False, index=True)
     location = Column(String, nullable=False)
     organizer_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    estimated_length_in_minutes = Column(String, nullable=True)
+    estimated_length_in_minutes = Column(String, nullable=False)
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 

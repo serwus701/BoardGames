@@ -36,11 +36,11 @@ export const EventsList = (props: EventsListProps) => {
 
     const formatRequiredPlayers = (game: BoardGame): string => {
         switch (game.playerCountsType) {
-            case 'specific':
+            case 'exact':
                 return game.playerCountsExact.join(', ');
-            case 'range':
+            case 'minMax':
                 return `${game.playerCountsMin} - ${game.playerCountsMax}`;
-            case 'minimum':
+            case 'minOnly':
                 return `${game.playerCountsMin} +`;
             default:
                 return 'N/A';
@@ -51,16 +51,29 @@ export const EventsList = (props: EventsListProps) => {
         const playersRegistered = event.registered_players?.length || 0;
 
         switch (game.playerCountsType) {
-            case 'specific':
+            case 'exact':
                 return game.playerCountsExact.includes(playersRegistered);
-            case 'minimum':
+            case 'minOnly':
                 return playersRegistered >= game.playerCountsMin;
-            case 'range':
+            case 'minMax':
                 return playersRegistered >= game.playerCountsMin && playersRegistered <= game.playerCountsMax;
             default:
                 return false;
         }
     }
+
+    const formatDuration = (minutes?: number) => {
+      const m = Math.max(0, Math.floor(minutes ?? 0));
+      const h = Math.floor(m / 60);
+      const r = m % 60;
+
+      const unit = (n: number, singular: string, plural = `${singular}s`) =>
+        `${n} ${n === 1 ? singular : plural}`;
+
+      if (h === 0) return unit(r, 'min');
+      if (r === 0) return unit(h, 'hr', 'hrs');
+      return `${unit(h, 'hr', 'hrs')} ${unit(r, 'min')}`;
+    };
 
     const gameOwnerIsRegistered = (event: Event, game: BoardGame): boolean => {
         return event.registered_players?.some(player => player.id === game.owner.id) || false;
@@ -169,7 +182,7 @@ export const EventsList = (props: EventsListProps) => {
                                         <div>
                                             <p className="text-sm text-gray-500">Duration</p>
                                             <p className="font-semibold">
-                                                {event.estimated_length_in_minutes / 60} hours
+                                                {formatDuration(Number.parseInt(event.estimated_length_in_minutes, 10))}
                                             </p>
                                         </div>
                                     </div>
@@ -192,7 +205,7 @@ export const EventsList = (props: EventsListProps) => {
                                                 {event.selected_games.map((game: BoardGame) => (
                                                     <tr key={game.id} className="hover:bg-gray-50">
                                                         <td className="border border-gray-300 px-4 py-2 text-sm">{game.name}</td>
-                                                        <td className="border border-gray-300 px-4 py-2 text-sm">{game.lengthInHours} hrs</td>
+                                                        <td className="border border-gray-300 px-4 py-2 text-sm">{formatDuration(game.lengthInMinutes)}</td>
                                                         <td className={`border border-gray-300 px-4 py-2 text-sm ${playersCountMatches(event, game) ? 'bg-green-300' : 'bg-red-300'}`}>{formatRequiredPlayers(game)}</td>
                                                         <td className={`border border-gray-300 px-4 py-2 text-sm ${gameOwnerIsRegistered(event, game) ? 'bg-green-300' : 'bg-red-300'}`}>{game.owner?.name || '-'}</td>
                                                     </tr>

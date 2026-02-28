@@ -8,8 +8,7 @@ from app.models.schemas.game import BoardGameResponse
 class EventBase(BaseModel):
     date_time: datetime
     location: str
-    estimated_length_in_minutes: Optional[str] = None
-
+    estimated_length_in_minutes: str
 
 class EventUpdate(BaseModel):
     date_time: Optional[datetime] = None
