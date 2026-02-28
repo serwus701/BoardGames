@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Event } from '@/types';
+import { Event } from '@/types/Event';
 
 interface EventEditModalProps {
     isOpen: boolean;
@@ -29,7 +29,7 @@ export default function EventEditModal({
     useEffect(() => {
         if (event) {
             const hoursFromMinutes = event.estimated_length_in_minutes
-                ? String(parseFloat(event.estimated_length_in_minutes) / 60)
+                ? String(event.estimated_length_in_minutes / 60)
                 : '';
 
             setFormData({

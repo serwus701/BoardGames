@@ -3,38 +3,72 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { gamesAPI, queueAPI } from '@/utils/api';
+import { queueAPI } from '@/services/queueApi';
+import { gamesAPI } from '@/services/gamesApi';
+import { BoardGame, QueueItem } from '@/types/BoardGame';
+
+
 
 export default function GameQueueManagementPage() {
-    const { isLoggedIn, user } = useAuth();
+    const { isLoggedIn, user, isLoading: isAuthLoading, token } = useAuth();
     const router = useRouter();
-    const [queue, setQueue] = useState<any[]>([]);
-    const [selectedGameId, setSelectedGameId] = useState('');
+    const [queue, setQueue] = useState<QueueItem[]>([]);
+    const [selectedGame, setSelectedGame] = useState<BoardGame | null>(null);
     const [successMessage, setSuccessMessage] = useState('');
     const [errorMessage, setErrorMessage] = useState('');
-    const [boardGames, setBoardGames] = useState<Record<string, any>>({});
+    const [boardGames, setBoardGames] = useState<BoardGame[]>([]);
+    const [areUnsavedChanges, setAreUnsavedChanges] = useState(false);
 
     useEffect(() => {
+        if (isAuthLoading) {
+            return;
+        }
         if (!isLoggedIn) {
             router.push('/login');
+            return;
         }
-        // Load games and current queue
-        (async () => {
-            try {
-                const [games, q] = await Promise.all([
-                    gamesAPI.listBoardGames(),
-                    queueAPI.listQueue()
-                ]);
 
-                const gamesMap: Record<string, any> = {};
-                (games || []).forEach((g: any) => (gamesMap[g.id] = { id: g.id, name: g.name }));
-                setBoardGames(gamesMap);
-                setQueue(q || []);
-            } catch (err) {
-                console.error('Failed loading queue/games', err);
+        gamesAPI.listBoardGames().then((games) => {
+            setBoardGames(games);
+        }).catch(() => {
+            setBoardGames([]);
+        });
+
+        queueAPI
+            .listQueue()
+            .then((queue) => {
+                const formattedQueue = queue.map((item) => ({
+                    id: item.id,
+                    name: item.name,
+                    lengthInHours: item.length_in_minutes / 60
+                }));
+                setQueue(formattedQueue ?? []);
+            })
+            .catch(() => {
+                setQueue([]);
+            });
+    }, [isLoggedIn, isAuthLoading, router]);
+
+    useEffect(() => {
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            if (areUnsavedChanges) {
+                e.preventDefault();
+                e.returnValue = 'Unsaved changes in queue. Are you sure you want to leave?';
+                return 'Unsaved changes in queue. Are you sure you want to leave?';
             }
-        })();
-    }, [isLoggedIn, router]);
+        };
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, [areUnsavedChanges]);
+
+    if (isAuthLoading) {
+        return (
+            <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
+                <p className="text-gray-500">Loading...</p>
+            </div>
+        );
+    }
 
     if (!isLoggedIn) {
         return (
@@ -51,8 +85,7 @@ export default function GameQueueManagementPage() {
         const newQueue = [...queue];
         [newQueue[index - 1], newQueue[index]] = [newQueue[index], newQueue[index - 1]];
         setQueue(newQueue);
-        setSuccessMessage('Queue item moved up');
-        setTimeout(() => setSuccessMessage(''), 3000);
+        setAreUnsavedChanges(true);
     };
 
     const handleMoveDown = (index: number) => {
@@ -61,58 +94,55 @@ export default function GameQueueManagementPage() {
         [newQueue[index], newQueue[index + 1]] = [newQueue[index + 1], newQueue[index]];
         setQueue(newQueue);
         setSuccessMessage('Queue item moved down');
-        setTimeout(() => setSuccessMessage(''), 3000);
-    };
-
-    const handleRemove = (index: number) => {
-        const newQueue = queue.filter((_, i) => i !== index);
-        setQueue(newQueue);
-        setSuccessMessage('Item removed from queue');
-        setTimeout(() => setSuccessMessage(''), 3000);
+        setAreUnsavedChanges(true);
     };
 
     const handleAddGameToQueue = () => {
-        if (!selectedGameId) {
+        if (!selectedGame) {
             setErrorMessage('Please select a game to add');
-            setTimeout(() => setErrorMessage(''), 3000);
             return;
         }
 
-        // Find the game
-        let gameName = '';
-        const gameRef = boardGames[selectedGameId as keyof typeof boardGames];
 
-        if (gameRef) {
-            gameName = gameRef.name;
-        }
-
-        // Create new queue item
-        const newQueueItem = {
-            id: `queue-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-            gameInstanceId: `instance-${selectedGameId}-${Date.now()}`,
-            gameId: selectedGameId,
-            addedByName: user?.name || 'Unknown',
-            addedAt: new Date()
+        const newQueueItem: QueueItem = {
+            id: selectedGame.id,
+            name: selectedGame.name,
+            lengthInHours: selectedGame.lengthInHours,
         };
 
         setQueue([...queue, newQueueItem]);
-        setSuccessMessage(`"${gameName}" added to queue!`);
-        setTimeout(() => setSuccessMessage(''), 3000);
-        setSelectedGameId('');
+        setSuccessMessage(`"${selectedGame.name}" added to queue!`);
+        setSelectedGame(null);
+        setAreUnsavedChanges(true);
     };
 
     const handleSave = () => {
-        setSuccessMessage('Queue updated successfully!');
-        setTimeout(() => setSuccessMessage(''), 3000);
-    };
+        if (!user || !token) {
+            setErrorMessage('Not authenticated');
+            return;
+        }
 
-    const getGame = (gameId: string) => {
-        const game = boardGames[gameId as keyof typeof boardGames];
-        return game ? { name: game.name, isCustom: false } : { name: 'Unknown Game', isCustom: false };
-    };
+        const queuePayload = queue.reduce((acc: string[], item) => {
+            acc.push(item.id.toString());
+            return acc;
+        }, []);
 
-    // All games for the dropdown
-    const allGames = Object.values(boardGames).map(g => ({ id: g.id, name: g.name }));
+        queueAPI.reorderQueue(queuePayload, token).then(() => {
+            setSuccessMessage('Queue updated successfully!');
+            setAreUnsavedChanges(false);
+        }).catch((err) => {
+            console.error('Failed to save queue order', err);
+            setErrorMessage('Failed to save queue order');
+        });
+    }
+
+    const handleRemoveFromQueue = (queueItemId: number) => {
+        const newQueue = queue.filter(item => item.id !== queueItemId);
+        console.log('Removing queue item with id:', queueItemId);
+        console.log('New queue after removal:', newQueue);
+        setQueue(newQueue);
+        setAreUnsavedChanges(true);
+    };
 
     return (
         <div className="min-h-screen bg-gray-50 py-12 px-4">
@@ -136,7 +166,6 @@ export default function GameQueueManagementPage() {
                     </div>
                 )}
 
-                {/* Add Games to Queue Section */}
                 <div className="bg-white rounded-lg shadow-md overflow-hidden mb-8">
                     <div className="bg-linear-to-r from-purple-600 to-purple-700 text-white p-6">
                         <h2 className="text-2xl font-bold">Add Games to Queue</h2>
@@ -152,12 +181,12 @@ export default function GameQueueManagementPage() {
                                     Select Game <span className="text-red-500">*</span>
                                 </label>
                                 <select
-                                    value={selectedGameId}
-                                    onChange={(e) => setSelectedGameId(e.target.value)}
+                                    value={selectedGame?.id || ''}
+                                    onChange={(e) => setSelectedGame(boardGames.find(game => game.id === Number(e.target.value)) || null)}
                                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                                 >
                                     <option value="">Choose a game...</option>
-                                    {allGames.map((game) => (
+                                    {boardGames.map((game) => (
                                         <option key={game.id} value={game.id}>
                                             {game.name}
                                         </option>
@@ -166,8 +195,9 @@ export default function GameQueueManagementPage() {
                             </div>
 
                             <button
+                                disabled={!selectedGame}
                                 onClick={handleAddGameToQueue}
-                                className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-lg transition-colors"
+                                className={`w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-lg transition-colors ${!selectedGame ? 'opacity-50' : 'cursor-pointer'}`}
                             >
                                 Add Game to Queue
                             </button>
@@ -175,7 +205,6 @@ export default function GameQueueManagementPage() {
                     </div>
                 </div>
 
-                {/* Queue Management Section */}
                 <div className="bg-white rounded-lg shadow-md overflow-hidden">
                     <div className="bg-linear-to-r from-blue-600 to-blue-700 text-white p-6">
                         <div className="flex justify-between items-center">
@@ -201,7 +230,6 @@ export default function GameQueueManagementPage() {
                     ) : (
                         <div className="divide-y">
                             {queue.map((item, index) => {
-                                const game = getGame(item.gameId);
 
                                 return (
                                     <div
@@ -217,12 +245,17 @@ export default function GameQueueManagementPage() {
                                         </div>
 
                                         <div className="flex-1">
-                                            <h3 className="text-lg font-bold text-gray-900">
-                                                {game.name}
-                                            </h3>
+                                            <div className='flex flex-row text-black items-center space-x-2'>
+                                                <h3 className="text-lg font-bold text-gray-900">
+                                                    {item.name}
+                                                </h3>
+                                                <h2>{item.lengthInHours.toFixed(1)} hours</h2>
+                                            </div>
+
                                             <p className="text-sm text-gray-600 mt-1">
-                                                <strong>Added by:</strong> {item.addedByName}
+                                                <strong>Added by: NO INFO FROM DB</strong>
                                             </p>
+
                                         </div>
 
                                         {isAdmin && (
@@ -244,7 +277,7 @@ export default function GameQueueManagementPage() {
                                                     ↓
                                                 </button>
                                                 <button
-                                                    onClick={() => handleRemove(index)}
+                                                    onClick={() => handleRemoveFromQueue(item.id)}
                                                     className="px-3 py-2 bg-red-200 hover:bg-red-300 text-red-700 rounded transition-colors"
                                                     title="Remove from queue"
                                                 >
@@ -257,45 +290,15 @@ export default function GameQueueManagementPage() {
                             })}
                         </div>
                     )}
-
-                    {isAdmin && (
-                        <div className="bg-gray-50 border-t p-6">
-                            <button
-                                onClick={handleSave}
-                                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition-colors"
-                            >
-                                Save Queue Changes
-                            </button>
-                        </div>
-                    )}
-                </div>
-
-                <div className="mt-8 grid md:grid-cols-2 gap-6">
-                    <div className="bg-blue-50 rounded-lg border border-blue-200 p-6">
-                        <h3 className="font-bold text-lg text-gray-900 mb-2">How the Queue Works</h3>
-                        <ul className="text-sm text-gray-700 space-y-2">
-                            <li>✓ Any player can add games to the queue</li>
-                            <li>✓ Games at top of queue are selected first for events</li>
-                            <li>✓ Only head admins can reorder and remove games</li>
-                            <li>✓ Support both standard and custom games</li>
-                        </ul>
+                    <div className="bg-gray-50 border-t p-6">
+                        <button
+                            disabled={!areUnsavedChanges}
+                            onClick={handleSave}
+                            className={`w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition-colors ${!areUnsavedChanges ? 'opacity-50' : 'cursor-pointer'}`}
+                        >
+                            Save Queue Changes
+                        </button>
                     </div>
-
-                    {isAdmin && (
-                        <div className="bg-red-50 rounded-lg border border-red-200 p-6">
-                            <div className="flex items-center gap-2 mb-2">
-                                <span className="inline-block bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full">
-                                    ADMIN
-                                </span>
-                                <h3 className="font-bold text-lg text-gray-900">Queue Management</h3>
-                            </div>
-                            <ul className="text-sm text-gray-700 space-y-2">
-                                <li>✓ Reorder games to change priority</li>
-                                <li>✓ Remove games from queue</li>
-                                <li>✓ Control which games are selected for events</li>
-                            </ul>
-                        </div>
-                    )}
                 </div>
             </div>
         </div>

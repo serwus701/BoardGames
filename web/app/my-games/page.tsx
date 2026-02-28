@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { gamesAPI } from '@/utils/api';
+import { gamesAPI } from '@/services/gamesApi';
 import { AddGame } from './AddGame';
 import { BoardGame } from '@/types/BoardGame';
 

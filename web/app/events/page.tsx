@@ -3,11 +3,12 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { eventsAPI, usersAPI } from '@/utils/api';
+import { eventsAPI } from '@/services/eventsApi';
 import EventEditModal from './EventEditModal';
 import { EventsList } from './EventsList';
 import { User } from '@/types/User';
 import { Event as EventType } from '@/types/Event';
+import { usersAPI } from '@/services/userApi';
 
 export default function EventsPage() {
     const { isLoggedIn, user, token, isLoading: isAuthLoading } = useAuth();
