@@ -10,11 +10,11 @@ class BoardGame(Base):
     name = Column(String, nullable=False, index=True)
     description = Column(String, nullable=True)
     length_in_minutes = Column(Integer, nullable=True)
-    player_count_type = Column(String, nullable=False, default='specific')  # 'specific', 'range', 'minimum'
-    min_players = Column(Integer, nullable=True)  # For 'range' and 'minimum' types
-    max_players = Column(Integer, nullable=True)  # For 'range' type only
-    valid_player_counts = Column(JSON, nullable=True)  # For 'specific' type only [1, 3, 4, 6]
-    creator_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    player_count_type = Column(String, nullable=False, default='specific')
+    min_players = Column(Integer, nullable=True)
+    max_players = Column(Integer, nullable=True)
+    valid_player_counts = Column(JSON, nullable=True)
+    creator_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 

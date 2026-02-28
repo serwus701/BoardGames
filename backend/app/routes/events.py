@@ -1,15 +1,16 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session, joinedload
 from typing import List
 
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session, joinedload
+
 from app.database import get_db
+from app.models import BoardGame, EventGame
 from app.models import Event
-from app.models import BoardGame
 from app.models import EventRegistration
 from app.models import User
-from app.models.schemas.event import EventCreate, EventUpdate, EventResponse
-from app.utils.auth import get_current_user
+from app.models.schemas.event import EventUpdate, EventResponse, EventBase
 from app.services.game_queue_service import manager as queue_manager
+from app.utils.auth import get_current_user
 
 router = APIRouter(prefix="/events", tags=["events"])
 
@@ -42,11 +43,12 @@ def list_events(db: Session = Depends(get_db)):
 
 @router.post("", response_model=EventResponse, status_code=201)
 async def create_event(
-        event_data: EventCreate,
+        event_data: EventBase,
         db: Session = Depends(get_db),
         current_user: User = Depends(get_current_user),
 ):
-    """Create a new event."""
+    """Create a new event and automatically populate games from the queue."""
+
     db_event = Event(
         date_time=event_data.date_time,
         location=event_data.location,
@@ -57,22 +59,35 @@ async def create_event(
     db.commit()
     db.refresh(db_event)
 
-    # Automatically add creator to registered players
     registration = EventRegistration(event_id=db_event.id, user_id=current_user.id)
     db.add(registration)
     db.commit()
-    db.refresh(db_event)
 
-    # Selected games (many-to-many via event_games secondary)
-    selected_ids = getattr(event_data, "selected_games", None) or []
-    if selected_ids:
-        games = db.query(BoardGame).filter(BoardGame.id.in_(selected_ids)).all()
-        db_event.games = games  # SQLAlchemy writes to event_games automatically
+    queue_game_ids = await queue_manager.get_all()
+
+    if queue_game_ids:
+        queued_games = db.query(BoardGame).filter(BoardGame.id.in_(queue_game_ids)).all()
+
+        game_map = {game.id: game.length_in_minutes for game in queued_games}
+
+        selected_games = []
+        total_duration = 0
+        limit = int(event_data.estimated_length_in_minutes)
+
+        for game_id in queue_game_ids:
+            duration = game_map.get(int(game_id))
+            if not duration:
+                continue
+
+            if total_duration + duration <= limit:
+                selected_games.append(int(game_id))
+                total_duration += duration
+
+                await queue_manager.remove(game_id)
+        db_event_games = [EventGame(game_id=game_id, event_id=db_event.id) for game_id in selected_games]
+        db.add_all(db_event_games)
         db.commit()
-        db.refresh(db_event)
-
-        for game_id in selected_ids:
-            await queue_manager.remove(str(game_id))
+    db.refresh(db_event)
 
     event_dict = EventResponse.model_validate(db_event).model_dump()
     event_dict["registered_players"] = [reg.user for reg in db_event.registrations]
@@ -281,3 +296,34 @@ async def remove_event_member(
 
     db.delete(registration)
     db.commit()
+
+
+@router.delete("/{event_id}/{game_id}", status_code=204)
+async def remove_event_game(
+        event_id: int,
+        game_id: int,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user),
+):
+    """Remove a member from an event (organizer or admin only)."""
+    event = db.query(Event).filter(Event.id == event_id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    if event.organizer_id != current_user.id and current_user.role != "head-admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    game = (
+        db.query(EventGame)
+        .filter(
+            EventGame.event_id == event_id,
+            EventGame.game_id == game_id,
+        )
+        .first()
+    )
+    if not game:
+        raise HTTPException(status_code=400, detail="User not registered for this event")
+
+    db.delete(game)
+    db.commit()
+    await queue_manager.add(str(game_id))
