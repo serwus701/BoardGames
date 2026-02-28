@@ -15,7 +15,7 @@ class BoardGameOwner(BaseModel):
 class BoardGameBase(BaseModel):
     name: str
     description: Optional[str] = None
-    length_in_minutes: Optional[int] = None
+    length_in_minutes: int
     player_count_type: Literal['specific', 'range', 'minimum'] = 'specific'
     min_players: Optional[int] = None
     max_players: Optional[int] = None
@@ -44,7 +44,7 @@ class BoardGameResponse(BaseModel):
     playerCountsExact: List[int]
     playerCountsMin: int
     playerCountsMax: int
-    lengthInHours: float
+    lengthInMinutes: int
 
     @model_validator(mode="before")
     @classmethod
@@ -64,7 +64,7 @@ class BoardGameResponse(BaseModel):
             "minimum": "minOnly",
         }
 
-        minutes = getattr(value, "length_in_minutes", None) or 0
+
         creator = getattr(value, "creator", None)
         owner = creator or {
             "id": 0,
@@ -80,7 +80,7 @@ class BoardGameResponse(BaseModel):
             "playerCountsExact": getattr(value, "valid_player_counts", None) or [],
             "playerCountsMin": getattr(value, "min_players", None) or 0,
             "playerCountsMax": getattr(value, "max_players", None) or 0,
-            "lengthInHours": round(minutes / 60, 2),
+            "lengthInMinutes": getattr(value, "length_in_minutes", None)
         }
 
     class Config:
@@ -93,7 +93,7 @@ class GameBase(BaseModel):
     min_players: Optional[int] = None
     max_players: Optional[int] = None
     valid_player_counts: Optional[List[int]] = None
-    length_in_minutes: Optional[int] = None
+    length_in_minutes: int
 
 
 class GameUpdate(BaseModel):

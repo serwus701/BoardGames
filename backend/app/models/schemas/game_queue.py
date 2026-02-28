@@ -4,6 +4,7 @@ class GameQueueItem(BaseModel):
     id: int
     name: str
     length_in_minutes: int
+    added_by: int
 
 class GameQueueResponse(BaseModel):
     items: list[GameQueueItem]

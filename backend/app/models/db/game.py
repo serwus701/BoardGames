@@ -9,7 +9,7 @@ class BoardGame(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String, nullable=False, index=True)
     description = Column(String, nullable=True)
-    length_in_minutes = Column(Integer, nullable=True)
+    length_in_minutes = Column(Integer, nullable=False)
     player_count_type = Column(String, nullable=False, default='specific')
     min_players = Column(Integer, nullable=True)
     max_players = Column(Integer, nullable=True)
