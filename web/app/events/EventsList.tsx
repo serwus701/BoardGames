@@ -36,11 +36,11 @@ export const EventsList = (props: EventsListProps) => {
 
     const formatRequiredPlayers = (game: BoardGame): string => {
         switch (game.playerCountsType) {
-            case 'exact':
+            case 'specific':
                 return game.playerCountsExact.join(', ');
-            case 'minMax':
+            case 'range':
                 return `${game.playerCountsMin} - ${game.playerCountsMax}`;
-            case 'minOnly':
+            case 'minimum':
                 return `${game.playerCountsMin} +`;
             default:
                 return 'N/A';
@@ -51,11 +51,11 @@ export const EventsList = (props: EventsListProps) => {
         const playersRegistered = event.registered_players?.length || 0;
 
         switch (game.playerCountsType) {
-            case 'exact':
+            case 'specific':
                 return game.playerCountsExact.includes(playersRegistered);
-            case 'minOnly':
+            case 'minimum':
                 return playersRegistered >= game.playerCountsMin;
-            case 'minMax':
+            case 'range':
                 return playersRegistered >= game.playerCountsMin && playersRegistered <= game.playerCountsMax;
             default:
                 return false;
