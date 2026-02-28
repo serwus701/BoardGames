@@ -71,6 +71,7 @@ def init_sample_data():
             length_in_minutes=120,
             player_count_type="specific",
             valid_player_counts=[1, 3, 4, 6],
+            creator_id=1
         )
         game2 = BoardGame(
             name="Catan",
@@ -78,6 +79,7 @@ def init_sample_data():
             length_in_minutes=60,
             player_count_type="specific",
             valid_player_counts=[3, 4],
+            creator_id=1
         )
         game3 = BoardGame(
             name="Carcassonne",
@@ -86,6 +88,8 @@ def init_sample_data():
             player_count_type="range",
             min_players=2,
             max_players=6,
+            creator_id=1
+
         )
         game4 = BoardGame(
             name="Ticket to Ride",
@@ -94,6 +98,8 @@ def init_sample_data():
             player_count_type="range",
             min_players=2,
             max_players=5,
+            creator_id=1
+
         )
         game5 = BoardGame(
             name="Azul",
@@ -101,6 +107,8 @@ def init_sample_data():
             length_in_minutes=30,
             player_count_type="specific",
             valid_player_counts=[2, 3, 4],
+            creator_id=1
+
         )
         game6 = BoardGame(
             name="Wingspan",
@@ -109,6 +117,8 @@ def init_sample_data():
             player_count_type="range",
             min_players=1,
             max_players=5,
+            creator_id=1
+
         )
         game7 = BoardGame(
             name="7 Wonders",
@@ -117,6 +127,8 @@ def init_sample_data():
             player_count_type="range",
             min_players=2,
             max_players=7,
+            creator_id=1
+
         )
         game8 = BoardGame(
             name="Pandemic",
@@ -125,6 +137,8 @@ def init_sample_data():
             player_count_type="range",
             min_players=2,
             max_players=4,
+            creator_id=1
+
         )
         game9 = BoardGame(
             name="Codenames",
@@ -132,6 +146,8 @@ def init_sample_data():
             length_in_minutes=15,
             player_count_type="minimum",
             min_players=4,
+            creator_id=1
+
         )
         game10 = BoardGame(
             name="Splendor",
@@ -139,6 +155,8 @@ def init_sample_data():
             length_in_minutes=30,
             player_count_type="specific",
             valid_player_counts=[2, 3, 4],
+            creator_id=1
+
         )
 
         db.add_all([game1, game2, game3, game4, game5, game6, game7, game8, game9, game10])
@@ -166,11 +184,13 @@ def init_sample_data():
             date_time=now + timedelta(days=7),
             location="123 Main St, New York, NY 10001",
             organizer_id=user1.id,
+            estimated_length_in_minutes="120",
         )
         event2 = Event(
             date_time=now + timedelta(days=14),
             location="456 Oak Ave, Boston, MA 02101",
             organizer_id=user2.id,
+            estimated_length_in_minutes="180",
         )
 
         db.add_all([event1, event2])
