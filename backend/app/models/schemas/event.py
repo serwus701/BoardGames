@@ -11,11 +11,6 @@ class EventBase(BaseModel):
     estimated_length_in_minutes: Optional[str] = None
 
 
-class EventCreate(EventBase):
-    organizer_id: int
-    selected_games: Optional[List[int]] = None
-
-
 class EventUpdate(BaseModel):
     date_time: Optional[datetime] = None
     location: Optional[str] = None

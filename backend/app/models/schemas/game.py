@@ -87,7 +87,7 @@ class BoardGameResponse(BaseModel):
         from_attributes = True
 
 
-class CustomGameBase(BaseModel):
+class GameBase(BaseModel):
     name: str
     player_count_type: Literal['specific', 'range', 'minimum'] = 'specific'
     min_players: Optional[int] = None
@@ -96,11 +96,7 @@ class CustomGameBase(BaseModel):
     length_in_minutes: Optional[int] = None
 
 
-class CustomGameCreate(CustomGameBase):
-    pass
-
-
-class CustomGameUpdate(BaseModel):
+class GameUpdate(BaseModel):
     name: Optional[str] = None
     player_count_type: Optional[Literal['specific', 'range', 'minimum']] = None
     min_players: Optional[int] = None
@@ -109,7 +105,7 @@ class CustomGameUpdate(BaseModel):
     length_in_minutes: Optional[int] = None
 
 
-class CustomGameResponse(CustomGameBase):
+class GameResponse(GameBase):
     id: int
     creator_id: int
     created_at: datetime
@@ -117,3 +113,8 @@ class CustomGameResponse(CustomGameBase):
 
     class Config:
         from_attributes = True
+
+
+class RecommendationResponse(BaseModel):
+    strict: list[BoardGameResponse]
+    rest: list[BoardGameResponse]
