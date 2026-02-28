@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { eventsAPI, queueAPI } from '@/utils/api';
+import { eventsAPI } from '@/services/eventsApi';
+import { queueAPI } from '@/services/queueApi';
 import { QueueItem } from '@/types/BoardGame';
 
 
@@ -44,9 +45,7 @@ export default function CreateEventPage() {
         }
         const limitedQueue = [];
         let accumulatedHours = 0;
-        console.log(queueItems);
         for (const item of queueItems) {
-            console.log(item, accumulatedHours, maxHours);
             if (accumulatedHours + item.lengthInHours <= parseFloat(maxHours)) {
                 limitedQueue.push(item);
                 accumulatedHours += item.lengthInHours;

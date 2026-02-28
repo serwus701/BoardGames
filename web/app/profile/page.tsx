@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { usersAPI } from '@/utils/api';
+import { usersAPI } from '@/services/userApi';
 
 export default function ProfilePage() {
     const { isLoggedIn, user, token, isLoading: isAuthLoading } = useAuth();
@@ -141,7 +141,7 @@ export default function ProfilePage() {
                                         <div className="grid grid-cols-2 gap-6">
                                             <div>
                                                 <label className="text-sm font-semibold text-gray-700">Full Name</label>
-                                                <p className="text-lg text-gray-900 mt-1">{user.full_name || 'Not set'}</p>
+                                                <p className="text-lg text-gray-900 mt-1">{user.name || 'Not set'}</p>
                                             </div>
                                             <div>
                                                 <label className="text-sm font-semibold text-gray-700">Email</label>

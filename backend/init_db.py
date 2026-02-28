@@ -17,54 +17,60 @@ def init_sample_data():
             print("Database already initialized with users. Skipping...")
             return
 
-        # --- Users ---
         user1 = User(
-            name="John Smith",
-            email="john@example.com",
+            name="Michaś",
+            email="serwus701@gmail.com",
             password_hash=hash_password("pass123"),
             bio="Board game enthusiast for 10 years",
-            home_address="123 Main St, New York, NY 10001",
+            home_address="stalowo",
             role="head-admin",
         )
         user2 = User(
-            name="Sarah Johnson",
-            email="sarah@example.com",
+            name="Kacper",
+            email="kacper4553@gmail.com",
             password_hash=hash_password("pass123"),
             bio="Love strategy games",
-            home_address="456 Oak Ave, Boston, MA 02101",
-            role="user",
+            home_address="Dokerska",
+            role="head-admin",
         )
         user3 = User(
-            name="Mike Chen",
-            email="mike@example.com",
+            name="Edi",
+            email="mike@oxlong.com",
             password_hash=hash_password("pass123"),
-            home_address="789 Elm St, San Francisco, CA 94102",
+            home_address="Jugosłowiańska",
             role="user",
         )
         user4 = User(
-            name="Emily Davis",
-            email="emily@example.com",
+            name="Ludi",
+            email="mike@oxshort.com",
             password_hash=hash_password("pass123"),
             bio="Party game enthusiast",
-            home_address="321 Pine St, Seattle, WA 98101",
+            home_address="Grunwald",
             role="user",
         )
         user5 = User(
-            name="Robert Wilson",
-            email="robert@example.com",
+            name="Vanessa",
+            email="noc@ox.com",
             password_hash=hash_password("pass123"),
             bio="Euro games specialist",
-            home_address="654 Cedar Ave, Portland, OR 97201",
+            home_address="Grunwald",
+            role="user",
+        )
+        user6 = User(
+            name="Bucket",
+            email="ligma@balls.com",
+            password_hash=hash_password("pass123"),
+            bio="Euro games specialist",
+            home_address="żegie",
             role="user",
         )
 
-        db.add_all([user1, user2, user3, user4, user5])
+        db.add_all([user1, user2, user3, user4, user5, user6])
         db.commit()
-        for u in (user1, user2, user3, user4, user5):
+        for u in (user1, user2, user3, user4, user5, user6):
             db.refresh(u)
         print("✓ Created sample users")
 
-        # --- Board games ---
         game1 = BoardGame(
             name="Dune",
             description="A strategic game of politics and intrigue",
@@ -182,13 +188,13 @@ def init_sample_data():
         now = datetime.now(timezone.utc)
         event1 = Event(
             date_time=now + timedelta(days=7),
-            location="123 Main St, New York, NY 10001",
+            location="stalowo",
             organizer_id=user1.id,
             estimated_length_in_minutes="120",
         )
         event2 = Event(
             date_time=now + timedelta(days=14),
-            location="456 Oak Ave, Boston, MA 02101",
+            location="Dokerska",
             organizer_id=user2.id,
             estimated_length_in_minutes="180",
         )

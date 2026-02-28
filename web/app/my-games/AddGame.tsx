@@ -1,6 +1,6 @@
 import { useAuth } from "@/context/AuthContext";
 import { EventGame } from "@/types/BoardGame";
-import { gamesAPI } from "@/utils/api";
+import { gamesAPI } from "@/services/gamesApi";
 import { useState } from "react";
 
 interface AddGameProps {

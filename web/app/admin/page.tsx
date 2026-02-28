@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { usersAPI } from '@/utils/api';
-import { gamesAPI } from '@/utils/api';
+import { usersAPI } from '@/services/userApi';
+import { gamesAPI } from '@/services/gamesApi';
 import { RegistrationRequest } from '@/types/auth';
 
 export default function AdminPage() {
@@ -262,9 +262,9 @@ export default function AdminPage() {
                                                 <div className="mt-2">
                                                     <p className="text-xs font-semibold text-gray-700 mb-1">Owned Games:</p>
                                                     <div className="flex flex-wrap gap-1">
-                                                        {u.ownedGames.map((gameId) => (
+                                                        {u.ownedGames.map((gameId: string | number) => (
                                                             <span key={gameId} className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
-                                                                {boardGames[gameId]?.name || gameId}
+                                                                {boardGames[gameId as keyof typeof boardGames]?.name || gameId}
                                                             </span>
                                                         ))}
                                                     </div>

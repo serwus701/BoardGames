@@ -87,15 +87,15 @@ export default function LoginPage() {
                             <div className="space-y-2 text-xs text-gray-600">
                                 <div>
                                     <p className="font-medium text-gray-700">Admin</p>
-                                    <p className="text-gray-500">john@example.com / pass123</p>
+                                    <p className="text-gray-500">serwus701@gmail.com / pass123</p>
                                 </div>
                                 <div>
                                     <p className="font-medium text-gray-700">User</p>
-                                    <p className="text-gray-500">sarah@example.com / pass123</p>
+                                    <p className="text-gray-500">mike@oxlong.com / pass123</p>
                                 </div>
                                 <div>
                                     <p className="font-medium text-gray-700">User</p>
-                                    <p className="text-gray-500">mike@example.com / pass123</p>
+                                    <p className="text-gray-500">mike@oxshort.com / pass123</p>
                                 </div>
                             </div>
                         </div>
