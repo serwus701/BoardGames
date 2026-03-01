@@ -1,22 +1,22 @@
-import { User } from '@/types';
+import { useAuth } from '@/context/AuthContext';
+import { BoardGame } from '@/types/BoardGame';
 import { Event } from '@/types/Event';
 
 
 
 interface EventsListProps {
     upcomingEvents: Event[];
-    userMap: { [key: string]: User };
     handleEditClick: (event: Event) => void;
     handleDeleteEvent: (eventId: string) => void;
     handleRegister: (eventId: string) => void;
     handleUnregister: (eventId: string) => void;
-    canManageEvent: (event: Event) => boolean;
     isUserRegistered: (event: Event) => boolean;
 
 }
 
 export const EventsList = (props: EventsListProps) => {
-    const { upcomingEvents, userMap, handleEditClick, handleDeleteEvent, handleRegister, handleUnregister, canManageEvent, isUserRegistered } = props;
+    const { upcomingEvents, handleEditClick, handleDeleteEvent, handleRegister, handleUnregister, isUserRegistered } = props;
+    const { user } = useAuth();
 
     const formatDateTime = (dateString: string) => {
         try {
@@ -34,19 +34,58 @@ export const EventsList = (props: EventsListProps) => {
         }
     };
 
-    const calculateTotalGameTime = (games: Array<Record<string, unknown>>) => {
-        return games.reduce((sum, game) => {
-            const g = game as Record<string, unknown>;
-            const minutes = Number(g['length_in_minutes'] ?? g['lengthInMinutes'] ?? 0) || 0;
-            return sum + minutes;
-        }, 0);
+    const formatRequiredPlayers = (game: BoardGame): string => {
+        switch (game.playerCountsType) {
+            case 'exact':
+                return game.playerCountsExact.join(', ');
+            case 'minMax':
+                return `${game.playerCountsMin} - ${game.playerCountsMax}`;
+            case 'minOnly':
+                return `${game.playerCountsMin} +`;
+            default:
+                return 'N/A';
+        }
     };
+
+    const playersCountMatches = (event: Event, game: BoardGame): boolean => {
+        const playersRegistered = event.registered_players?.length || 0;
+
+        switch (game.playerCountsType) {
+            case 'exact':
+                return game.playerCountsExact.includes(playersRegistered);
+            case 'minOnly':
+                return playersRegistered >= game.playerCountsMin;
+            case 'minMax':
+                return playersRegistered >= game.playerCountsMin && playersRegistered <= game.playerCountsMax;
+            default:
+                return false;
+        }
+    }
+
+    const formatDuration = (minutes?: number) => {
+      const m = Math.max(0, Math.floor(minutes ?? 0));
+      const h = Math.floor(m / 60);
+      const r = m % 60;
+
+      const unit = (n: number, singular: string, plural = `${singular}s`) =>
+        `${n} ${n === 1 ? singular : plural}`;
+
+      if (h === 0) return unit(r, 'min');
+      if (r === 0) return unit(h, 'hr', 'hrs');
+      return `${unit(h, 'hr', 'hrs')} ${unit(r, 'min')}`;
+    };
+
+    const gameOwnerIsRegistered = (event: Event, game: BoardGame): boolean => {
+        return event.registered_players?.some(player => player.id === game.owner.id) || false;
+    }
+
+    const isAdmin = user?.role === 'head-admin' || user?.role === 'admin';
 
     return (
         <>
             {upcomingEvents.map((event) => {
-                const canManage = canManageEvent(event);
-                const organizer = userMap[event.organizer_id];
+
+                const isCreator = user?.id === event.organizer.id;
 
                 return (
                     <div
@@ -57,14 +96,12 @@ export const EventsList = (props: EventsListProps) => {
                             <div className="flex justify-between items-start mb-4">
                                 <div className="flex-1">
                                     <h2 className="text-2xl font-bold text-gray-900">
-                                        Event {event.id}
+                                        Upcoming event
                                     </h2>
-                                    <p className="text-gray-600 text-sm mt-1">
-                                        Board game gathering
-                                    </p>
                                 </div>
+
                                 <div className="flex gap-2 ml-4">
-                                    {canManage ? (
+                                    {(isCreator || isAdmin) && (
                                         <>
                                             <button
                                                 onClick={() => handleEditClick(event)}
@@ -79,29 +116,30 @@ export const EventsList = (props: EventsListProps) => {
                                                 Delete
                                             </button>
                                         </>
-                                    ) : isUserRegistered(event) ? (
-                                        <button
-                                            onClick={() => handleUnregister(event.id)}
-                                            className="px-4 py-2 bg-red-100 text-red-700 rounded hover:bg-red-200 font-medium flex items-center gap-2"
-                                        >
-                                            <span>✓ Registered</span>
-                                            <span className="text-xs bg-red-200 px-2 py-0.5 rounded-full">
-                                                {event.registered_players?.length || 0} players
-                                            </span>
-                                        </button>
-                                    ) : (
-                                        <button
-                                            onClick={() => handleRegister(event.id)}
-                                            className="px-4 py-2 bg-green-100 text-green-700 rounded hover:bg-green-200 font-medium flex items-center gap-2"
-                                        >
-                                            <span>Register</span>
-                                            {event.registered_players && event.registered_players.length > 0 && (
-                                                <span className="text-xs bg-green-200 px-2 py-0.5 rounded-full">
-                                                    {event.registered_players.length} already joined
-                                                </span>
-                                            )}
-                                        </button>
                                     )}
+
+                                    {
+
+                                        !isCreator && (isUserRegistered(event) ? (
+                                            <button
+                                                onClick={() => handleUnregister(event.id)}
+                                                className="px-4 py-2 bg-red-100 text-red-700 rounded hover:bg-red-200 font-medium flex items-center gap-2"
+                                            >
+                                                <span>Unregister</span>
+                                            </button>
+                                        ) : (
+                                            <button
+                                                onClick={() => handleRegister(event.id)}
+                                                className="px-4 py-2 bg-green-100 text-green-700 rounded hover:bg-green-200 font-medium flex items-center gap-2"
+                                            >
+                                                <span>Register</span>
+                                                {event.registered_players && event.registered_players.length > 0 && (
+                                                    <span className="text-xs bg-green-200 px-2 py-0.5 rounded-full">
+                                                        {event.registered_players.length} already joined
+                                                    </span>
+                                                )}
+                                            </button>
+                                        ))}
                                 </div>
                             </div>
 
@@ -126,17 +164,15 @@ export const EventsList = (props: EventsListProps) => {
                                     </div>
                                 </div>
 
-                                {organizer && (
-                                    <div className="flex items-center space-x-3 text-gray-700">
-                                        <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                                            <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3z" />
-                                        </svg>
-                                        <div>
-                                            <p className="text-sm text-gray-500">Organizer</p>
-                                            <p className="font-semibold">{organizer.name}</p>
-                                        </div>
+                                <div className="flex items-center space-x-3 text-gray-700">
+                                    <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3z" />
+                                    </svg>
+                                    <div>
+                                        <p className="text-sm text-gray-500">Organizer</p>
+                                        <p className="font-semibold">{event.organizer.name}</p>
                                     </div>
-                                )}
+                                </div>
 
                                 {event.estimated_length_in_minutes && (
                                     <div className="flex items-center space-x-3 text-gray-700">
@@ -146,105 +182,62 @@ export const EventsList = (props: EventsListProps) => {
                                         <div>
                                             <p className="text-sm text-gray-500">Duration</p>
                                             <p className="font-semibold">
-                                                {(parseFloat(event.estimated_length_in_minutes) / 60).toFixed(1)} hours
+                                                {formatDuration(Number.parseInt(event.estimated_length_in_minutes, 10))}
                                             </p>
                                         </div>
                                     </div>
                                 )}
                             </div>
-
-                            {(() => {
-                                const eventGames = getEventGames(event.id);
-                                const totalGameTime = calculateTotalGameTime(eventGames);
-                                const eventDuration = event.estimated_length_in_minutes
-                                    ? parseFloat(event.estimated_length_in_minutes)
-                                    : 0;
-
-                                return eventGames.length > 0 && (
-                                    <div className="bg-green-50 rounded-lg p-4 mb-4 border-2 border-green-200">
-                                        <div className="flex justify-between items-center mb-3">
-                                            <p className="text-sm font-semibold text-gray-900">
-                                                Games for this Event ({eventGames.length})
-                                            </p>
-                                            <p className="text-xs text-gray-600">
-                                                Total: {(totalGameTime / 60).toFixed(1)}h
-                                                {eventDuration > 0 && ` / ${(eventDuration / 60).toFixed(1)}h available`}
-                                            </p>
-                                        </div>
-                                        <div className="space-y-2">
-                                            {eventGames.map(game => (
-                                                <div
-                                                    key={game.id}
-                                                    className="bg-white border border-green-200 rounded-lg p-3 flex justify-between items-center"
-                                                >
-                                                    <div>
-                                                        <p className="font-semibold text-gray-900">{(game as any).name}</p>
-                                                        <p className="text-xs text-gray-500">
-                                                            {(game as any).valid_player_counts?.join?.(', ')} players
-                                                        </p>
-                                                    </div>
-                                                    <div className="text-right">
-                                                        <p className="text-xs text-gray-500">
-                                                            {((Number((game as any).length_in_minutes ?? (game as any).lengthInMinutes ?? 0) || 0) / 60).toFixed(1)} h
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                );
-                            })()}
-
-                            {!isUserRegistered(event) && !canManageEvent(event) && (
-                                <div className="bg-blue-50 rounded-lg p-4 border-2 border-blue-300">
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <p className="text-sm font-semibold text-gray-900 mb-1">
-                                                Want to join this event?
-                                            </p>
-                                            <p className="text-xs text-gray-600">
-                                                {event.registered_players?.length || 0} player{(event.registered_players?.length || 0) !== 1 ? 's' : ''} already registered
-                                            </p>
-                                        </div>
-                                        <button
-                                            onClick={() => handleRegister(event.id)}
-                                            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium whitespace-nowrap ml-4"
-                                        >
-                                            Join Event
-                                        </button>
+                            {event.selected_games?.length && event.selected_games.length > 0 && (
+                                <div className="mb-6 text-black">
+                                    <p className="text-sm font-semibold text-gray-900 mb-3">Selected Games</p>
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full border-collapse border border-gray-300">
+                                            <thead>
+                                                <tr className="bg-gray-200">
+                                                    <th className="border border-gray-300 px-4 py-2 text-left text-sm font-semibold">Game Name</th>
+                                                    <th className="border border-gray-300 px-4 py-2 text-left text-sm font-semibold">Game Length</th>
+                                                    <th className="border border-gray-300 px-4 py-2 text-left text-sm font-semibold">Required Players</th>
+                                                    <th className="border border-gray-300 px-4 py-2 text-left text-sm font-semibold">Owner</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {event.selected_games.map((game: BoardGame) => (
+                                                    <tr key={game.id} className="hover:bg-gray-50">
+                                                        <td className="border border-gray-300 px-4 py-2 text-sm">{game.name}</td>
+                                                        <td className="border border-gray-300 px-4 py-2 text-sm">{formatDuration(game.lengthInMinutes)}</td>
+                                                        <td className={`border border-gray-300 px-4 py-2 text-sm ${playersCountMatches(event, game) ? 'bg-green-300' : 'bg-red-300'}`}>{formatRequiredPlayers(game)}</td>
+                                                        <td className={`border border-gray-300 px-4 py-2 text-sm ${gameOwnerIsRegistered(event, game) ? 'bg-green-300' : 'bg-red-300'}`}>{game.owner?.name || '-'}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
                                     </div>
                                 </div>
                             )}
 
+
                             {event.registered_players && event.registered_players.length > 0 ? (
                                 <div className="bg-blue-50 rounded-lg p-4 border-2 border-blue-200">
                                     <p className="text-sm font-semibold text-gray-900 mb-3">
-                                        👥 Registered Players ({event.registered_players.length})
+                                        Registered Players ({event.registered_players.length})
                                     </p>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                        {event.registered_players.map(playerId => {
-                                            const player = userMap[playerId];
-                                            return (
-                                                <div
-                                                    key={playerId}
-                                                    className="bg-white border border-blue-200 rounded-lg px-3 py-2 flex items-center space-x-2"
-                                                >
-                                                    <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
-                                                        {(player?.full_name || player?.email || 'U')[0].toUpperCase()}
-                                                    </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="text-sm font-medium text-gray-900 truncate">
-                                                            {player?.full_name || player?.email || 'Unknown'}
-                                                        </p>
-                                                        {player?.full_name && player?.email && (
-                                                            <p className="text-xs text-gray-500 truncate">
-                                                                {player.email}
-                                                            </p>
-                                                        )}
-                                                    </div>
+                                        {event.registered_players.map(player => (
+                                            <div
+                                                key={player.id}
+                                                className="bg-white border border-blue-200 rounded-lg px-3 py-2 flex items-center space-x-2"
+                                            >
+                                                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                                                    {(player.name || 'U')[0].toUpperCase()}
                                                 </div>
-                                            );
-                                        })}
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-medium text-gray-900 truncate">
+                                                        {player.name || player.email || 'Unknown'}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
                             ) : (

@@ -2,6 +2,7 @@ export interface RegistrationRequest {
     id: string;
     name: string;
     email: string;
+    phone?: string;
     status: 'pending' | 'approved' | 'rejected';
     requestedAt: Date;
     respondedAt?: Date;
@@ -11,17 +12,13 @@ export interface RegistrationRequest {
 export interface AuthUser {
     id: string;
     email: string;
-    full_name?: string;
-    phone?: string;
     bio?: string;
-    home_address?: string;
     role: 'head-admin' | 'admin' | 'user';
-    is_active?: boolean;
-    created_at?: string;
-    updated_at?: string;
-    // Legacy fields for backward compatibility
-    name?: string;
+    created_at: string;
+    updated_at: string;
+    name: string;
     homeAddress?: string;
+    phone?: string;
     contributedGameIds?: string[];
     ownedGames?: string[];
 }

@@ -1,76 +1,94 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import func
 from sqlalchemy.orm import Session
-from typing import List
 
 from app.database import get_db
-from app.models.game_queue import GameQueueItem
-from app.models.user import User
-from app.schemas.game_queue import GameQueueItemCreate, GameQueueItemResponse, QueueReorderRequest
+from app.models import User, BoardGame
+from app.models.schemas.game_queue import GameQueueResponse, GameQueueItem, NewQueuePayload, BaseQueueItem, \
+    DeleteQueuePayload
+from app.services.game_queue_service import manager
 from app.utils.auth import get_current_user
 
 router = APIRouter(prefix="/game-queue", tags=["game-queue"])
 
 
-@router.get("", response_model=List[GameQueueItemResponse])
-def list_queue(db: Session = Depends(get_db)):
-    """List all items in the game queue."""
-    items = db.query(GameQueueItem).order_by(GameQueueItem.queue_position).all()
-    return items
-
-
-@router.post("", response_model=GameQueueItemResponse, status_code=201)
-async def add_to_queue(
-    queue_item: GameQueueItemCreate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+@router.get("", response_model=GameQueueResponse)
+async def list_queue(
+    db: Session = Depends(get_db)
 ):
-    """Add a game to the queue (any user can do this)."""
-    # Get current max position
-    max_position = db.query(GameQueueItem).count()
+    queue_items = await manager.get_all()
 
-    db_item = GameQueueItem(
-        game_id=queue_item.game_id,
-        added_by_user_id=current_user.id,
-        queue_position=max_position
-    )
-    db.add(db_item)
-    db.commit()
-    db.refresh(db_item)
-    return db_item
+    if not queue_items:
+        return GameQueueResponse(items=[])
+
+    ordered_game_ids = [item.game_id for item in queue_items]
+    unique_user_ids = list(set(item.user_id for item in queue_items))
+
+    db_games = db.query(BoardGame).filter(BoardGame.id.in_(ordered_game_ids)).all()
+    db_users = db.query(User).filter(User.id.in_(unique_user_ids)).all()
+
+    db_games_map = {str(game.id): game for game in db_games}
+    db_users_map = {user.id: user for user in db_users}
+
+    response_items = []
+    for queue_item in queue_items:
+        game_data = db_games_map.get(queue_item.game_id)
+        user_data = db_users_map.get(queue_item.user_id)
+
+        if game_data:
+            response_items.append(
+                GameQueueItem(
+                    id=game_data.id,
+                    length_in_minutes=game_data.length_in_minutes,
+                    name=game_data.name,
+                    added_by=user_data
+                )
+            )
+
+    return GameQueueResponse(items=response_items)
+
+@router.post("", status_code=201)
+async def add_to_queue(game_id: str, current_user: User = Depends(get_current_user)):
+    await manager.add(game_id, current_user.id)
+    return {"status": "added"}
+
+
+@router.post("/rollback")
+async def rollback_queue(current_user: User = Depends(get_current_user)):
+    """Reverts the last add or remove operation."""
+    if current_user.role != "head-admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+
+    success = await manager.rollback()
+    if not success:
+        raise HTTPException(status_code=400, detail="No history to rollback")
+    return {"message": "Rollback successful"}
 
 
 @router.post("/reorder")
-async def reorder_queue(
-    request: QueueReorderRequest,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """Reorder queue items (admin only)."""
+async def rollback_queue(new_queue: NewQueuePayload, current_user: User = Depends(get_current_user)):
+    """Reverts the last add or remove operation."""
     if current_user.role != "head-admin":
-        raise HTTPException(status_code=403, detail="Only admins can reorder queue")
+        raise HTTPException(status_code=403, detail="Admin only")
 
-    for item_data in request.items:
-        item = db.query(GameQueueItem).filter(GameQueueItem.id == item_data["id"]).first()
-        if item:
-            item.queue_position = item_data["queue_position"]
-
-    db.commit()
-    return {"message": "Queue reordered successfully"}
+    await manager.create_from_list(new_queue.items)
+    return {"message": "New order saved"}
 
 
-@router.delete("/{queue_item_id}", status_code=204)
-async def remove_from_queue(
-    queue_item_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """Remove item from queue (admin only)."""
+@router.delete("/session", status_code=204)
+async def remove_from_queue(payload: DeleteQueuePayload, current_user: User = Depends(get_current_user)):
     if current_user.role != "head-admin":
-        raise HTTPException(status_code=403, detail="Only admins can remove from queue")
+        raise HTTPException(status_code=403, detail="Admin only")
 
-    item = db.query(GameQueueItem).filter(GameQueueItem.id == queue_item_id).first()
-    if not item:
-        raise HTTPException(status_code=404, detail="Queue item not found")
+    if not await manager.remove_batch(payload.items):
+        raise HTTPException(status_code=404, detail="Game not found")
 
-    db.delete(item)
-    db.commit()
+
+@router.delete("/{item}", status_code=204)
+async def remove_from_queue(item: str, current_user: User = Depends(get_current_user)):
+    if current_user.role != "head-admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+
+    if not await manager.remove(item):
+        raise HTTPException(status_code=404, detail="Game not found")

@@ -1,14 +1,15 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session, joinedload
 from typing import List
 
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session, joinedload
+
 from app.database import get_db
-from app.models.event import Event
-from app.models.game import BoardGame
-from app.models.game_queue import GameQueueItem
-from app.models.event_registration import EventRegistration
-from app.models.user import User
-from app.schemas.event import EventCreate, EventUpdate, EventResponse
+from app.models import BoardGame, EventGame
+from app.models import Event
+from app.models import EventRegistration
+from app.models import User
+from app.models.schemas.event import EventUpdate, EventResponse, EventBase
+from app.services.game_queue_service import manager as queue_manager
 from app.utils.auth import get_current_user
 
 router = APIRouter(prefix="/events", tags=["events"])
@@ -20,7 +21,8 @@ def list_events(db: Session = Depends(get_db)):
         db.query(Event)
         .options(
             joinedload(Event.registrations).joinedload(EventRegistration.user),
-            joinedload(Event.games),
+            joinedload(Event.games).joinedload(BoardGame.creator),
+            joinedload(Event.organizer),
         )
         .order_by(Event.date_time)
         .all()
@@ -31,7 +33,8 @@ def list_events(db: Session = Depends(get_db)):
         event_dict = EventResponse.model_validate(event).model_dump()
 
         event_dict["registered_players"] = [reg.user for reg in event.registrations]
-        event_dict["selected_games"] = list(event.games)
+        event_dict["selected_games"] = event.games
+        event_dict["organizer"] = event.organizer
 
         response.append(event_dict)
 
@@ -40,11 +43,12 @@ def list_events(db: Session = Depends(get_db)):
 
 @router.post("", response_model=EventResponse, status_code=201)
 async def create_event(
-    event_data: EventCreate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+        event_data: EventBase,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user),
 ):
-    """Create a new event."""
+    """Create a new event and automatically populate games from the queue."""
+
     db_event = Event(
         date_time=event_data.date_time,
         location=event_data.location,
@@ -55,38 +59,41 @@ async def create_event(
     db.commit()
     db.refresh(db_event)
 
-    # Automatically add creator to registered players
     registration = EventRegistration(event_id=db_event.id, user_id=current_user.id)
     db.add(registration)
     db.commit()
+
+    queue_items = await queue_manager.get_all()
+    game_ids = [item.game_id for item in queue_items]
+
+    if game_ids:
+        queued_games = db.query(BoardGame).filter(BoardGame.id.in_(game_ids)).all()
+
+        game_map = {game.id: game.length_in_minutes for game in queued_games}
+
+        selected_games = []
+        total_duration = 0
+        limit = int(event_data.estimated_length_in_minutes)
+
+        for game_id in game_ids:
+            duration = game_map.get(int(game_id))
+            if not duration:
+                continue
+
+            if total_duration + duration <= limit:
+                selected_games.append(int(game_id))
+                total_duration += duration
+
+                await queue_manager.remove(game_id)
+        db_event_games = [EventGame(game_id=game_id, event_id=db_event.id) for game_id in selected_games]
+        db.add_all(db_event_games)
+        db.commit()
     db.refresh(db_event)
 
-    # Selected games (many-to-many via event_games secondary)
-    selected_ids = getattr(event_data, "selected_games", None) or []
-    if selected_ids:
-        games = db.query(BoardGame).filter(BoardGame.id.in_(selected_ids)).all()
-        db_event.games = games  # SQLAlchemy writes to event_games automatically
-        db.commit()
-        db.refresh(db_event)
-
-        # Attach first matching queue item to this event, if exists
-        for gid in selected_ids:
-            item = (
-                db.query(GameQueueItem)
-                .filter(
-                    GameQueueItem.game_id == gid,
-                    GameQueueItem.used_in_event_id.is_(None),
-                )
-                .order_by(GameQueueItem.queue_position)
-                .first()
-            )
-            if item:
-                item.used_in_event_id = db_event.id
-        db.commit()
-
     event_dict = EventResponse.model_validate(db_event).model_dump()
-    event_dict["registered_players"] = [reg.user_id for reg in db_event.registrations]
-    event_dict["selected_games"] = [g.id for g in db_event.games]
+    event_dict["registered_players"] = [reg.user for reg in db_event.registrations]
+    event_dict["selected_games"] = db_event.games
+    event_dict["organizer"] = db_event.organizer
     return event_dict
 
 
@@ -97,7 +104,8 @@ def get_event(event_id: int, db: Session = Depends(get_db)):
         db.query(Event)
         .options(
             joinedload(Event.registrations).joinedload(EventRegistration.user),
-            joinedload(Event.games),
+            joinedload(Event.games).joinedload(BoardGame.creator),
+            joinedload(Event.organizer),
         )
         .filter(Event.id == event_id)
         .first()
@@ -106,24 +114,26 @@ def get_event(event_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Event not found")
 
     event_dict = EventResponse.model_validate(event).model_dump()
-    event_dict["registered_players"] = [reg.user_id for reg in event.registrations]
-    event_dict["selected_games"] = [g.id for g in event.games]
+    event_dict["registered_players"] = [reg.user for reg in event.registrations]
+    event_dict["selected_games"] = event.games
+    event_dict["organizer"] = event.organizer
     return event_dict
 
 
 @router.put("/{event_id}", response_model=EventResponse)
 async def update_event(
-    event_id: int,
-    event_data: EventUpdate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+        event_id: int,
+        event_data: EventUpdate,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user),
 ):
     """Update event (organizer or admin only)."""
     event = (
         db.query(Event)
         .options(
-            joinedload(Event.registrations),
-            joinedload(Event.games),
+            joinedload(Event.registrations).joinedload(EventRegistration.user),
+            joinedload(Event.games).joinedload(BoardGame.creator),
+            joinedload(Event.organizer),
         )
         .filter(Event.id == event_id)
         .first()
@@ -151,58 +161,32 @@ async def update_event(
         to_add = list(new_ids - old_ids)
         to_remove = list(old_ids - new_ids)
 
-        # set relation (SQLAlchemy updates junction table)
         new_games = []
         if new_ids:
             new_games = db.query(BoardGame).filter(BoardGame.id.in_(list(new_ids))).all()
         event.games = new_games
 
-        # attach queue items for added games
-        for gid in to_add:
-            item = (
-                db.query(GameQueueItem)
-                .filter(
-                    GameQueueItem.game_id == gid,
-                    GameQueueItem.used_in_event_id.is_(None),
-                )
-                .order_by(GameQueueItem.queue_position)
-                .first()
-            )
-            if item:
-                item.used_in_event_id = event.id
+        for game_id in to_add:
+            await queue_manager.remove(str(game_id))
 
-        # detach queue items for removed games
-        for gid in to_remove:
-            item = (
-                db.query(GameQueueItem)
-                .filter(
-                    GameQueueItem.game_id == gid,
-                    GameQueueItem.used_in_event_id == event.id,
-                )
-                .first()
-            )
-            if item:
-                item.used_in_event_id = None
-                # return to front of global queue (your existing logic; keep as-is)
-                db.query(GameQueueItem).filter(GameQueueItem.id != item.id).update(
-                    {GameQueueItem.queue_position: GameQueueItem.queue_position + 1}
-                )
-                item.queue_position = 0
+        for game_id in to_remove:
+            await queue_manager.add(str(game_id))
 
     db.commit()
     db.refresh(event)
 
     event_dict = EventResponse.model_validate(event).model_dump()
-    event_dict["registered_players"] = [reg.user_id for reg in event.registrations]
-    event_dict["selected_games"] = [g.id for g in event.games]
+    event_dict["registered_players"] = [reg.user for reg in event.registrations]
+    event_dict["selected_games"] = event.games
+    event_dict["organizer"] = event.organizer
     return event_dict
 
 
 @router.delete("/{event_id}", status_code=204)
 async def delete_event(
-    event_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+        event_id: int,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user),
 ):
     """Delete event (organizer or admin only)."""
     event = db.query(Event).filter(Event.id == event_id).first()
@@ -218,16 +202,17 @@ async def delete_event(
 
 @router.post("/{event_id}/register", response_model=EventResponse)
 async def register_for_event(
-    event_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+        event_id: int,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user),
 ):
     """Register current user for an event."""
     event = (
         db.query(Event)
         .options(
-            joinedload(Event.registrations),
-            joinedload(Event.games),
+            joinedload(Event.registrations).joinedload(EventRegistration.user),
+            joinedload(Event.games).joinedload(BoardGame.creator),
+            joinedload(Event.organizer),
         )
         .filter(Event.id == event_id)
         .first()
@@ -252,16 +237,17 @@ async def register_for_event(
     db.refresh(event)
 
     event_dict = EventResponse.model_validate(event).model_dump()
-    event_dict["registered_players"] = [reg.user_id for reg in event.registrations]
-    event_dict["selected_games"] = [g.id for g in event.games]
+    event_dict["registered_players"] = [reg.user for reg in event.registrations]
+    event_dict["selected_games"] = event.games
+    event_dict["organizer"] = event.organizer
     return event_dict
 
 
 @router.delete("/{event_id}/register", status_code=204)
 async def unregister_from_event(
-    event_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+        event_id: int,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user),
 ):
     """Unregister current user from an event."""
     event = db.query(Event).filter(Event.id == event_id).first()
@@ -285,10 +271,10 @@ async def unregister_from_event(
 
 @router.delete("/{event_id}/members/{user_id}", status_code=204)
 async def remove_event_member(
-    event_id: int,
-    user_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+        event_id: int,
+        user_id: int,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user),
 ):
     """Remove a member from an event (organizer or admin only)."""
     event = db.query(Event).filter(Event.id == event_id).first()
@@ -311,3 +297,34 @@ async def remove_event_member(
 
     db.delete(registration)
     db.commit()
+
+
+@router.delete("/{event_id}/{game_id}", status_code=204)
+async def remove_event_game(
+        event_id: int,
+        game_id: int,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user),
+):
+    """Remove a member from an event (organizer or admin only)."""
+    event = db.query(Event).filter(Event.id == event_id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    if event.organizer_id != current_user.id and current_user.role != "head-admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    game = (
+        db.query(EventGame)
+        .filter(
+            EventGame.event_id == event_id,
+            EventGame.game_id == game_id,
+        )
+        .first()
+    )
+    if not game:
+        raise HTTPException(status_code=400, detail="User not registered for this event")
+
+    db.delete(game)
+    db.commit()
+    await queue_manager.add(str(game_id))

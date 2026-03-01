@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { usersAPI } from '@/utils/api';
+import { usersAPI } from '@/services/userApi';
 
 export default function ProfilePage() {
     const { isLoggedIn, user, token, isLoading: isAuthLoading } = useAuth();
@@ -28,11 +28,11 @@ export default function ProfilePage() {
             router.push('/login');
         } else if (user) {
             setFormData({
-                full_name: user.full_name || '',
+                full_name: user.name || '',
                 email: user.email || '',
                 phone: user.phone || '',
                 bio: user.bio || '',
-                home_address: user.home_address || ''
+                home_address: user.homeAddress || ''
             });
         }
     }, [isLoggedIn, isAuthLoading, user, router]);
@@ -43,10 +43,6 @@ export default function ProfilePage() {
             ...prev,
             [name]: value
         }));
-    };
-
-    const handleGameToggle = (gameId: string) => {
-        // No longer needed - we're not storing games in user profile
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -113,15 +109,15 @@ export default function ProfilePage() {
                 {user && (
                     <div className="bg-white rounded-lg shadow-md overflow-hidden">
                         {/* Profile Header */}
-                        <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-8">
+                        <div className="from-blue-600 to-blue-700 text-white p-8">
                             <div className="flex items-center space-x-4">
                                 <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center">
                                     <span className="text-2xl font-bold text-blue-600">
-                                        {(user.full_name || user.email || 'U').charAt(0).toUpperCase()}
+                                        {(user.name || user.email || 'U').charAt(0).toUpperCase()}
                                     </span>
                                 </div>
                                 <div>
-                                    <h2 className="text-2xl font-bold">{user.full_name || 'User'}</h2>
+                                    <h2 className="text-2xl font-bold">{user.name || 'User'}</h2>
                                     <p className="text-blue-100">{user.email}</p>
                                     {user.role && (
                                         <span className="text-xs bg-blue-500 px-2 py-1 rounded-full mt-1 inline-block">
@@ -141,7 +137,7 @@ export default function ProfilePage() {
                                         <div className="grid grid-cols-2 gap-6">
                                             <div>
                                                 <label className="text-sm font-semibold text-gray-700">Full Name</label>
-                                                <p className="text-lg text-gray-900 mt-1">{user.full_name || 'Not set'}</p>
+                                                <p className="text-lg text-gray-900 mt-1">{user.name || 'Not set'}</p>
                                             </div>
                                             <div>
                                                 <label className="text-sm font-semibold text-gray-700">Email</label>
@@ -163,10 +159,10 @@ export default function ProfilePage() {
                                             </div>
                                         )}
 
-                                        {user.home_address && (
+                                        {user.homeAddress && (
                                             <div>
                                                 <label className="text-sm font-semibold text-gray-700">Home Address</label>
-                                                <p className="text-lg text-gray-900 mt-1">{user.home_address}</p>
+                                                <p className="text-lg text-gray-900 mt-1">{user.homeAddress}</p>
                                             </div>
                                         )}
 

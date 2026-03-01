@@ -2,24 +2,22 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Event, User, CustomGame, GameQueueItem } from '@/types';
 import { useAuth } from '@/context/AuthContext';
-import { eventsAPI, usersAPI, gamesAPI, queueAPI } from '@/utils/api';
+import { eventsAPI } from '@/services/eventsApi';
 import EventEditModal from './EventEditModal';
 import { EventsList } from './EventsList';
-import { BoardGame } from '@/types/BoardGame';
+import { User } from '@/types/User';
+import { Event as EventType } from '@/types/Event';
+import { usersAPI } from '@/services/userApi';
 
 export default function EventsPage() {
     const { isLoggedIn, user, token, isLoading: isAuthLoading } = useAuth();
     const router = useRouter();
 
-    const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
-    const [userMap, setUserMap] = useState<Record<string, User>>({});
-    const [gamesMap, setGamesMap] = useState<Record<string, BoardGame | CustomGame>>({});
-    const [queueItems, setQueueItems] = useState<GameQueueItem[]>([]);
+    const [upcomingEvents, setUpcomingEvents] = useState<EventType[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState('');
-    const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+    const [editingEvent, setEditingEvent] = useState<EventType | null>(null);
     const [showEditModal, setShowEditModal] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [saveError, setSaveError] = useState('');
@@ -37,29 +35,16 @@ export default function EventsPage() {
         const fetchData = async () => {
             try {
                 setIsLoading(true);
-                const [fetchedEvents, users, boardGames, customGames, queue] = await Promise.all([
+                const [fetchedEvents, users] = await Promise.all([
                     eventsAPI.listEvents(),
                     usersAPI.listUsers(),
-                    gamesAPI.listBoardGames(),
-                    gamesAPI.listCustomGames(),
-                    queueAPI.listQueue()
                 ]);
 
                 const userMapping: Record<string, User> = {};
                 users.forEach((u: User) => {
                     userMapping[u.id] = u;
                 });
-                setUserMap(userMapping);
-
-                const gamesMapping: Record<string, BoardGame | CustomGame> = {};
-                (boardGames || []).forEach((g: BoardGame) => {
-                    gamesMapping[g.id] = g;
-                });
-                (customGames || []).forEach((g: CustomGame) => {
-                    gamesMapping[g.id] = g;
-                });
-                setGamesMap(gamesMapping);
-                setQueueItems(queue);
+                // Note: userMapping could be used for lookups if needed in the future
 
                 const now = new Date();
                 const upcoming = fetchedEvents.filter(event => {
@@ -82,79 +67,16 @@ export default function EventsPage() {
         fetchData();
     }, [isLoggedIn, isAuthLoading, router]);
 
-    const canManageEvent = (event: Event): boolean => {
-        if (!user) return false;
-        return user.id === event.organizer_id || user.role === 'head-admin' || user.role === 'admin';
-    };
-
-    const assignGamesToEvents = () => {
-        const assignments: Record<string, AssignedGame[]> = {};
-
-        type RawQueueItem = GameQueueItem & Record<string, unknown> & {
-            used_in_event_id?: string;
-            usedInEventId?: string;
-            queue_position?: number;
-            game_id?: string;
-            gameId?: string;
-        };
-
-        const availableQueue = (queueItems as RawQueueItem[])
-            .filter(item => !(item.used_in_event_id ?? item.usedInEventId))
-            .sort((a, b) => ((a.queue_position ?? 0) as number) - ((b.queue_position ?? 0) as number));
-
-        let queueIndex = 0;
-
-        const sortedEvents = [...upcomingEvents].sort((a, b) =>
-            new Date(a.date_time).getTime() - new Date(b.date_time).getTime()
-        );
-
-        for (const event of sortedEvents) {
-            const eventDurationMinutes = event.estimated_length_in_minutes
-                ? parseFloat(event.estimated_length_in_minutes)
-                : 0;
-
-            type AssignedGame = (BoardGame | CustomGame) & { queueItemId?: string };
-            const assignedGames: AssignedGame[] = [];
-            let totalTime = 0;
-
-            while (queueIndex < availableQueue.length) {
-                const queueItem = availableQueue[queueIndex];
-                const gameId = (queueItem as RawQueueItem).game_id ?? (queueItem as RawQueueItem).gameId ?? (queueItem.gameId as unknown);
-                const game = gamesMap[String(gameId)];
-
-                if (game) {
-                    const gRec = game as Record<string, unknown>;
-                    const gameTime = Number(gRec['length_in_minutes'] ?? gRec['lengthInMinutes'] ?? gRec['lengthInMinutes'] ?? 0) || 0;
-
-                    if (assignedGames.length === 0 || totalTime + gameTime <= eventDurationMinutes) {
-                        assignedGames.push({ ...(game as AssignedGame), queueItemId: (queueItem as RawQueueItem).id });
-                        totalTime += gameTime;
-                        queueIndex++;
-                    } else {
-                        break;
-                    }
-                } else {
-                    queueIndex++;
-                }
-            }
-
-            if (assignedGames.length > 0) {
-                assignments[event.id] = assignedGames;
-            }
-        }
-
-        return assignments;
-    };
 
 
 
-    const handleEditClick = (event: Event) => {
+    const handleEditClick = (event: EventType) => {
         setEditingEvent(event);
         setShowEditModal(true);
         setSaveError('');
     };
 
-    const handleSaveEvent = async (updatedData: Partial<Event>) => {
+    const handleSaveEvent = async (updatedData: Partial<EventType>) => {
         if (!editingEvent || !token) return;
 
         try {
@@ -212,9 +134,9 @@ export default function EventsPage() {
         }
     };
 
-    const isUserRegistered = (event: Event): boolean => {
+    const isUserRegistered = (event: EventType): boolean => {
         if (!user) return false;
-        return event.registered_players?.includes(user.id) || false;
+        return event.registered_players?.some(player => player.id === user.id) || false;
     };
 
     const handleRegister = async (eventId: string) => {
@@ -339,15 +261,12 @@ export default function EventsPage() {
                     <div className="grid gap-6">
                         <EventsList
                             upcomingEvents={upcomingEvents}
-                            userMap={userMap}
                             handleEditClick={handleEditClick}
                             handleDeleteEvent={handleDeleteEvent}
                             handleRegister={handleRegister}
                             handleUnregister={handleUnregister}
-                            canManageEvent={canManageEvent}
                             isUserRegistered={isUserRegistered}
-                        />
-                    </div>
+                        />\n                    </div>
                 )}
 
                 <EventEditModal

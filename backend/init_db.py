@@ -3,7 +3,7 @@ import sys
 from datetime import datetime, timedelta, timezone
 
 from app.database import SessionLocal, init_db
-from app.models import User, BoardGame, GameQueueItem, Event, EventRegistration
+from app.models import User, BoardGame, Event, EventRegistration
 from app.utils.auth import hash_password
 
 
@@ -17,133 +17,152 @@ def init_sample_data():
             print("Database already initialized with users. Skipping...")
             return
 
-        # --- Users ---
         user1 = User(
-            name="John Smith",
-            email="john@example.com",
+            name="Michaś",
+            email="serwus701@gmail.com",
             password_hash=hash_password("pass123"),
-            phone="555-0101",
             bio="Board game enthusiast for 10 years",
-            home_address="123 Main St, New York, NY 10001",
+            home_address="stalowo",
             role="head-admin",
         )
         user2 = User(
-            name="Sarah Johnson",
-            email="sarah@example.com",
+            name="Kacper",
+            email="kacper4553@gmail.com",
             password_hash=hash_password("pass123"),
-            phone="555-0102",
             bio="Love strategy games",
-            home_address="456 Oak Ave, Boston, MA 02101",
-            role="user",
+            home_address="Dokerska",
+            role="head-admin",
         )
         user3 = User(
-            name="Mike Chen",
-            email="mike@example.com",
+            name="Edi",
+            email="mike@oxlong.com",
             password_hash=hash_password("pass123"),
-            phone="555-0103",
-            home_address="789 Elm St, San Francisco, CA 94102",
+            home_address="Jugosłowiańska",
             role="user",
         )
         user4 = User(
-            name="Emily Davis",
-            email="emily@example.com",
+            name="Ludi",
+            email="mike@oxshort.com",
             password_hash=hash_password("pass123"),
-            phone="555-0104",
             bio="Party game enthusiast",
-            home_address="321 Pine St, Seattle, WA 98101",
+            home_address="Grunwald",
             role="user",
         )
         user5 = User(
-            name="Robert Wilson",
-            email="robert@example.com",
+            name="Vanessa",
+            email="noc@ox.com",
             password_hash=hash_password("pass123"),
-            phone="555-0105",
             bio="Euro games specialist",
-            home_address="654 Cedar Ave, Portland, OR 97201",
+            home_address="Grunwald",
+            role="user",
+        )
+        user6 = User(
+            name="Bucket",
+            email="ligma@balls.com",
+            password_hash=hash_password("pass123"),
+            bio="Euro games specialist",
+            home_address="żegie",
             role="user",
         )
 
-        db.add_all([user1, user2, user3, user4, user5])
+        db.add_all([user1, user2, user3, user4, user5, user6])
         db.commit()
-        for u in (user1, user2, user3, user4, user5):
+        for u in (user1, user2, user3, user4, user5, user6):
             db.refresh(u)
         print("✓ Created sample users")
 
-        # --- Board games ---
         game1 = BoardGame(
             name="Dune",
             description="A strategic game of politics and intrigue",
             length_in_minutes=120,
-            player_count_type="specific",
+            player_count_type="exact",
             valid_player_counts=[1, 3, 4, 6],
+            creator_id=1
         )
         game2 = BoardGame(
             name="Catan",
             description="Build settlements on the island of Catan",
             length_in_minutes=60,
-            player_count_type="specific",
+            player_count_type="exact",
             valid_player_counts=[3, 4],
+            creator_id=1
         )
         game3 = BoardGame(
             name="Carcassonne",
             description="Build a medieval landscape tile by tile",
             length_in_minutes=45,
-            player_count_type="range",
+            player_count_type="minMax",
             min_players=2,
             max_players=6,
+            creator_id=1
+
         )
         game4 = BoardGame(
             name="Ticket to Ride",
             description="Claim railway routes across continents",
             length_in_minutes=90,
-            player_count_type="range",
+            player_count_type="minMax",
             min_players=2,
             max_players=5,
+            creator_id=1
+
         )
         game5 = BoardGame(
             name="Azul",
             description="Create beautiful tile patterns",
             length_in_minutes=30,
-            player_count_type="specific",
+            player_count_type="exact",
             valid_player_counts=[2, 3, 4],
+            creator_id=1
+
         )
         game6 = BoardGame(
             name="Wingspan",
             description="Build the best bird sanctuary",
             length_in_minutes=70,
-            player_count_type="range",
+            player_count_type="minMax",
             min_players=1,
             max_players=5,
+            creator_id=1
+
         )
         game7 = BoardGame(
             name="7 Wonders",
             description="Lead your civilization to greatness",
             length_in_minutes=30,
-            player_count_type="range",
+            player_count_type="minMax",
             min_players=2,
             max_players=7,
+            creator_id=1
+
         )
         game8 = BoardGame(
             name="Pandemic",
             description="Save humanity from deadly diseases",
             length_in_minutes=45,
-            player_count_type="range",
+            player_count_type="minMax",
             min_players=2,
             max_players=4,
+            creator_id=1
+
         )
         game9 = BoardGame(
             name="Codenames",
             description="Word-based party game",
             length_in_minutes=15,
-            player_count_type="minimum",
+            player_count_type="minOnly",
             min_players=4,
+            creator_id=1
+
         )
         game10 = BoardGame(
             name="Splendor",
             description="Become a Renaissance merchant",
             length_in_minutes=30,
-            player_count_type="specific",
+            player_count_type="exact",
             valid_player_counts=[2, 3, 4],
+            creator_id=1
+
         )
 
         db.add_all([game1, game2, game3, game4, game5, game6, game7, game8, game9, game10])
@@ -155,7 +174,7 @@ def init_sample_data():
         # --- Custom (user) game ---
         custom_game = BoardGame(
             name="Homebrew Dice Game",
-            player_count_type="specific",
+            player_count_type="exact",
             valid_player_counts=[2, 3, 4],
             length_in_minutes=45,
             creator_id=user2.id,
@@ -165,26 +184,19 @@ def init_sample_data():
         db.refresh(custom_game)
         print("✓ Created custom (user) games")
 
-        # --- Game queue items (poprawione: były niezdefiniowane) ---
-        queue1 = GameQueueItem(game_id=game1.id, added_by_user_id=user1.id, queue_position=0)
-        queue2 = GameQueueItem(game_id=game2.id, added_by_user_id=user1.id, queue_position=1)
-        queue3 = GameQueueItem(game_id=custom_game.id, added_by_user_id=user2.id, queue_position=2)
-
-        db.add_all([queue1, queue2, queue3])
-        db.commit()
-        print("✓ Created game queue items")
-
         # --- Events ---
         now = datetime.now(timezone.utc)
         event1 = Event(
             date_time=now + timedelta(days=7),
-            location="123 Main St, New York, NY 10001",
+            location="stalowo",
             organizer_id=user1.id,
+            estimated_length_in_minutes="120",
         )
         event2 = Event(
             date_time=now + timedelta(days=14),
-            location="456 Oak Ave, Boston, MA 02101",
+            location="Dokerska",
             organizer_id=user2.id,
+            estimated_length_in_minutes="180",
         )
 
         db.add_all([event1, event2])

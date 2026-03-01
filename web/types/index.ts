@@ -17,15 +17,6 @@ export interface Location {
     postalCode: string;
 }
 
-export interface User {
-    id: string;
-    name: string;
-    email: string;
-    phone?: string;
-    bio?: string;
-    favoriteGames?: string[];
-}
-
 export interface SharedGameInstance {
     id: string;
     gameId: string;
@@ -33,15 +24,4 @@ export interface SharedGameInstance {
     addedByName: string;
     addedAt: Date;
 }
-
-export interface GameQueueItem {
-    id: string;
-    gameInstanceId: string;
-    gameId: string;
-    addedByName: string;
-    addedAt: Date;
-    usedInEventId?: string;
-    usedAt?: Date;
-}
-
 

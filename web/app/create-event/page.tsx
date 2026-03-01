@@ -3,7 +3,10 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { eventsAPI, queueAPI, gamesAPI } from '@/utils/api';
+import { eventsAPI } from '@/services/eventsApi';
+import { queueAPI } from '@/services/queueApi';
+import { QueueItem } from '@/types/Queue';
+
 
 export default function CreateEventPage() {
     const { isLoggedIn, user, token, isLoading: isAuthLoading } = useAuth();
@@ -15,9 +18,43 @@ export default function CreateEventPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const [successMessage, setSuccessMessage] = useState('');
-    const [queueItems, setQueueItems] = useState<any[]>([]);
-    const [boardGamesMap, setBoardGamesMap] = useState<Record<number, any>>({});
-    const [selectedQueueItems, setSelectedQueueItems] = useState<number[]>([]);
+    const [queueItems, setQueueItems] = useState<QueueItem[]>([]);
+    const [limitedQueueItems, setLimitedQueueItems] = useState<QueueItem[]>([]);
+
+    async function fetchQueue() {
+        try {
+            const queue = await queueAPI.listQueue();
+
+            const formattedQueue = queue.map((item) => ({
+                id: item.id,
+                name: item.name,
+                lengthInHours: item.length_in_minutes / 60
+            }));
+
+            setQueueItems(formattedQueue ?? []);
+        } catch {
+            setQueueItems([]);
+        }
+    };
+
+    useEffect(() => {
+        const maxHours = formData.estimated_length_in_hours;
+        if (!maxHours) {
+            setLimitedQueueItems([]);
+            return;
+        }
+        const limitedQueue = [];
+        let accumulatedHours = 0;
+        for (const item of queueItems) {
+            if (accumulatedHours + item.lengthInHours <= parseFloat(maxHours)) {
+                limitedQueue.push(item);
+                accumulatedHours += item.lengthInHours;
+            } else {
+                break;
+            }
+        }
+        setLimitedQueueItems(limitedQueue);
+    }, [queueItems, formData.estimated_length_in_hours]);
 
     useEffect(() => {
         if (isAuthLoading) {
@@ -26,18 +63,7 @@ export default function CreateEventPage() {
         if (!isLoggedIn) {
             router.push('/login');
         }
-        // load queue + games for assignment suggestions
-        (async () => {
-            try {
-                const [queue, games] = await Promise.all([queueAPI.listQueue(), gamesAPI.listBoardGames()]);
-                setQueueItems(queue || []);
-                const map: Record<number, any> = {};
-                (games || []).forEach((g: any) => (map[Number(g.id)] = g));
-                setBoardGamesMap(map);
-            } catch (e) {
-                // ignore
-            }
-        })();
+        fetchQueue();
     }, [isLoggedIn, isAuthLoading, router]);
 
     if (isAuthLoading) {
@@ -73,7 +99,7 @@ export default function CreateEventPage() {
             return;
         }
 
-        if (!user?.home_address) {
+        if (!user?.homeAddress) {
             setError('Please set your home address in your profile first');
             return;
         }
@@ -86,18 +112,21 @@ export default function CreateEventPage() {
         try {
             setIsLoading(true);
 
-            // Convert hours to minutes for backend
             const estimatedMinutes = formData.estimated_length_in_hours
                 ? String(parseFloat(formData.estimated_length_in_hours) * 60)
                 : undefined;
 
+            const autoAssignedGames = limitedQueueItems
+                .map((queueItem) => queueItem.id)
+                .filter((gameId): gameId is number => typeof gameId === 'number');
+
             await eventsAPI.createEvent(
                 {
                     date_time: formData.date_time,
-                    location: user.home_address,
+                    location: user.homeAddress,
                     organizer_id: user.id,
                     estimated_length_in_minutes: estimatedMinutes,
-                    selected_games: selectedQueueItems
+                    selected_games: autoAssignedGames
                 },
                 token
             );
@@ -106,9 +135,13 @@ export default function CreateEventPage() {
             setTimeout(() => {
                 router.push('/events');
             }, 1500);
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Failed to create event:', err);
-            setError(err.data?.detail || 'Failed to create event');
+            const message =
+                err instanceof Object && 'data' in err && err.data instanceof Object && 'detail' in err.data
+                    ? String(err.data.detail)
+                    : 'Failed to create event';
+            setError(message);
         } finally {
             setIsLoading(false);
         }
@@ -136,17 +169,7 @@ export default function CreateEventPage() {
 
                 <div className="bg-white rounded-lg shadow-md p-8">
                     <form onSubmit={handleSubmit} className="space-y-6">
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                            <h3 className="font-semibold text-blue-900 mb-2">Create an Event:</h3>
-                            <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside">
-                                <li>Provide a date and time for your event</li>
-                                <li>Location will be automatically set to your home address from profile</li>
-                                <li>Optionally estimate how long the event will run (in hours)</li>
-                                <li>Other users can register and you can manage the event</li>
-                            </ol>
-                        </div>
-
-                        {!user?.home_address && (
+                        {!user?.homeAddress && (
                             <div className="bg-yellow-50 border border-yellow-300 rounded-lg p-4 mb-6">
                                 <p className="text-yellow-800 font-semibold">⚠️ No home address set</p>
                                 <p className="text-sm text-yellow-700 mt-1">
@@ -176,7 +199,7 @@ export default function CreateEventPage() {
                                 Location (from your profile)
                             </label>
                             <div className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700">
-                                {user?.home_address || 'Not set - please update your profile'}
+                                {user?.homeAddress || 'Not set - please update your profile'}
                             </div>
                             <p className="text-xs text-gray-500 mt-1">Update your home address in your profile to change this</p>
                         </div>
@@ -200,25 +223,25 @@ export default function CreateEventPage() {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">Assign Games From Queue (optional)</label>
-                            <div className="space-y-2 max-h-48 overflow-auto border rounded p-2 bg-white">
-                                {queueItems.length === 0 && <p className="text-sm text-gray-500">No items in queue</p>}
-                                {queueItems.map((qi) => {
-                                    const gid = qi.game_id ?? qi.gameId;
-                                    const game = boardGamesMap[Number(gid)];
-                                    const label = game ? `${game.name}` : `Game #${gid}`;
-                                    const checked = selectedQueueItems.includes(qi.id);
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                Games for next session
+                            </label>
+                            <div className="space-y-2 max-h-48 overflow-auto border rounded p-3 bg-gray-50 text-black">
+                                {queueItems.length === 0 && (
+                                    <p className="text-sm text-gray-500 italic">No games in queue</p>
+                                )}
+                                {limitedQueueItems.map((queueItem) => {
                                     return (
-                                        <div key={qi.id} className="flex items-center gap-3">
-                                            <input type="checkbox" checked={checked} onChange={() => {
-                                                setSelectedQueueItems(prev => prev.includes(qi.id) ? prev.filter(id => id !== qi.id) : [...prev, qi.id]);
-                                            }} />
-                                            <div className="text-sm text-gray-700">{label} <span className="text-xs text-gray-400">(queue pos: {qi.queue_position})</span></div>
+                                        <div key={queueItem.id} className="flex items-center gap-2 text-sm text-gray-700">
+                                            <span>{queueItem.name}</span>
+                                            <span>{`(${queueItem.lengthInHours.toFixed(1)} hours)`}</span>
                                         </div>
                                     );
                                 })}
                             </div>
-                            <p className="text-xs text-gray-500 mt-1">Selected queue items will be reserved for this event and removed from the global queue.</p>
+                            <p className="text-xs text-gray-500 mt-1">
+                                All queue items will be automatically assigned to this event and removed from the global queue.
+                            </p>
                         </div>
 
                         <button
@@ -230,26 +253,6 @@ export default function CreateEventPage() {
                         </button>
                     </form>
 
-                    <div className="mt-8 p-6 bg-gray-50 rounded-lg border border-gray-200">
-                        <h3 className="text-lg font-bold text-gray-900 mb-4">Event Preview</h3>
-                        <div className="space-y-2 text-sm text-gray-700">
-                            <p>
-                                <span className="font-semibold">Organizer:</span> {user?.full_name || user?.email || 'Not logged in'}
-                            </p>
-                            <p>
-                                <span className="font-semibold">Date & Time:</span> {formData.date_time ? new Date(formData.date_time).toLocaleString() : 'Not selected'}
-                            </p>
-                            <p>
-                                <span className="font-semibold">Location:</span> {user?.home_address || 'Not set in profile'}
-                            </p>
-                            {formData.estimated_length_in_hours && (
-                                <p>
-                                    <span className="font-semibold">Duration:</span> {formData.estimated_length_in_hours} hours
-                                </p>
-                            )}
-                            <p className="text-xs text-gray-500 mt-3">You will be able to edit the date/time and duration after creation</p>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>

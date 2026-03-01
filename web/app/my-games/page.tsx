@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { gamesAPI } from '@/utils/api';
+import { gamesAPI } from '@/services/gamesApi';
 import { AddGame } from './AddGame';
 import { BoardGame } from '@/types/BoardGame';
 
@@ -17,6 +17,21 @@ export default function OurGamesPage() {
     const [errorMessage, setErrorMessage] = useState('');
 
     const [boardGames, setBoardGames] = useState<BoardGame[]>([]);
+    const [isLoadingGames, setIsLoadingGames] = useState(false);
+
+    const loadGames = async () => {
+        setIsLoadingGames(true);
+        try {
+            const games = await gamesAPI.listBoardGames();
+            setBoardGames(games);
+        } catch (err) {
+            console.error('Failed to load games data', err);
+            setErrorMessage('Failed to load games');
+            setTimeout(() => setErrorMessage(''), 3000);
+        } finally {
+            setIsLoadingGames(false);
+        }
+    };
 
     useEffect(() => {
         if (isAuthLoading) return;
@@ -26,17 +41,7 @@ export default function OurGamesPage() {
             return;
         }
 
-        (async () => {
-            try {
-                const games = await gamesAPI.listBoardGames();
-
-                setBoardGames(games);
-            } catch (err) {
-                console.error('Failed to load games data', err);
-                setErrorMessage('Failed to load games');
-                setTimeout(() => setErrorMessage(''), 3000);
-            }
-        })();
+        loadGames();
     }, [isLoggedIn, isAuthLoading, router]);
 
     if (isAuthLoading) {
@@ -91,9 +96,11 @@ export default function OurGamesPage() {
     return (
         <div className="min-h-[calc(100vh-4rem)] bg-gray-50 py-12 px-4">
             <div className="max-w-4xl mx-auto">
-                <div className="mb-8">
-                    <h1 className="text-4xl font-bold text-gray-900 mb-2">Games</h1>
-                    <p className="text-gray-600">List of games available in the system.</p>
+                <div className="mb-8 flex justify-between items-start">
+                    <div>
+                        <h1 className="text-4xl font-bold text-gray-900 mb-2">Games</h1>
+                        <p className="text-gray-600">List of games available in the system.</p>
+                    </div>
                 </div>
 
                 {successMessage && (
@@ -153,7 +160,11 @@ export default function OurGamesPage() {
                         </div>
                     </div>
                 </div>
-                <AddGame setErrorMessage={setErrorMessage} setSuccessMessage={setSuccessMessage} />
+                <AddGame
+                    setErrorMessage={setErrorMessage}
+                    setSuccessMessage={setSuccessMessage}
+                    refreshGamesList={loadGames}
+                />
 
             </div>
         </div>

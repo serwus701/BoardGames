@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Event } from '@/types';
+import { Event } from '@/types/Event';
 
 interface EventEditModalProps {
     isOpen: boolean;
@@ -29,7 +29,7 @@ export default function EventEditModal({
     useEffect(() => {
         if (event) {
             const hoursFromMinutes = event.estimated_length_in_minutes
-                ? String(parseFloat(event.estimated_length_in_minutes) / 60)
+                ? String(Number.parseInt(event.estimated_length_in_minutes, 10) / 60)
                 : '';
 
             setFormData({
@@ -101,7 +101,7 @@ export default function EventEditModal({
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Location (from organizer's profile)
+                            Location (from organizer&#39;s profile)
                         </label>
                         <div className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-600">
                             {event?.location || 'Not set'}

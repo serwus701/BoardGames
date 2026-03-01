@@ -1,14 +1,12 @@
-from .user import User
-from .game import BoardGame
-from .game_queue import GameQueueItem
-from .event import Event
-from .event_registration import EventRegistration
+from app.models.db.user import User
+from app.models.db.game import BoardGame
+from app.models.db.event import Event
+from app.models.db.event_registration import EventRegistration
+from app.models.db.event_games import EventGame
 
 __all__ = [
     "User",
     "BoardGame",
-    "GameQueueItem",
-    "Event",
     "Event",
     "EventRegistration",
     "EventGame",
