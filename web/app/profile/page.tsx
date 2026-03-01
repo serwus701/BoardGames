@@ -6,12 +6,11 @@ import { useAuth } from '@/context/AuthContext';
 import { usersAPI } from '@/services/userApi';
 
 export default function ProfilePage() {
-    const { isLoggedIn, user, token, isLoading: isAuthLoading } = useAuth();
+    const { isLoggedIn, user, token, isLoading: isAuthLoading, refreshUserData } = useAuth();
     const router = useRouter();
     const [formData, setFormData] = useState({
-        full_name: '',
+        name: '',
         email: '',
-        phone: '',
         bio: '',
         home_address: ''
     });
@@ -28,9 +27,8 @@ export default function ProfilePage() {
             router.push('/login');
         } else if (user) {
             setFormData({
-                full_name: user.name || '',
+                name: user.name || '',
                 email: user.email || '',
-                phone: user.phone || '',
                 bio: user.bio || '',
                 home_address: user.homeAddress || ''
             });
@@ -59,6 +57,7 @@ export default function ProfilePage() {
 
             await usersAPI.updateUser(user.id, formData, token);
 
+            await refreshUserData();
             setSuccessMessage('Profile updated successfully!');
             setIsEditing(false);
             setTimeout(() => setSuccessMessage(''), 3000);
@@ -186,8 +185,8 @@ export default function ProfilePage() {
                                                 </label>
                                                 <input
                                                     type="text"
-                                                    name="full_name"
-                                                    value={formData.full_name}
+                                                    name="name"
+                                                    value={formData.name}
                                                     onChange={handleInputChange}
                                                     disabled={isSaving}
                                                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
@@ -206,21 +205,6 @@ export default function ProfilePage() {
                                                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
                                                 />
                                             </div>
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                                Phone
-                                            </label>
-                                            <input
-                                                type="tel"
-                                                name="phone"
-                                                value={formData.phone}
-                                                onChange={handleInputChange}
-                                                disabled={isSaving}
-                                                placeholder="e.g., +1234567890"
-                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
-                                            />
                                         </div>
 
                                         <div>

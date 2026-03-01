@@ -119,6 +119,8 @@ export default function UsersManagementPage() {
                 {
                     name: editingUser.name,
                     email: editingUser.email,
+                    home_address: editingUser.homeAddress,
+                    role: editingUser.role
                 } as any,
                 token
             );
