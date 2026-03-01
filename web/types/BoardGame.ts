@@ -17,20 +17,6 @@ export interface GameItem {
     lengthInMinutes: number;
 }
 
-export interface QueueItem {
-    id: number;
-    name: string;
-    lengthInHours: number;
-}
-
-export interface ListQueueResponse {
-    items: {
-        id: number;
-        name: string;
-        length_in_minutes: number;
-    }[];
-}
-
 export type EventGameForm = Omit<EventGame, "id" | "lengthInMinutes"> & {
     lengthInHours: number;
 };

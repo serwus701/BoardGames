@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { eventsAPI } from '@/services/eventsApi';
 import { queueAPI } from '@/services/queueApi';
-import { QueueItem } from '@/types/BoardGame';
+import { QueueItem } from '@/types/Queue';
 
 
 export default function CreateEventPage() {
