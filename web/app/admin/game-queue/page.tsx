@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { queueAPI } from '@/services/queueApi';
 import { gamesAPI } from '@/services/gamesApi';
-import { BoardGame, QueueItem } from '@/types/BoardGame';
+import { BoardGame } from '@/types/BoardGame';
+import { QueueItem, QueueReorderItemApi } from '@/types/Queue';
 
 
 
@@ -122,8 +123,11 @@ export default function GameQueueManagementPage() {
             return;
         }
 
-        const queuePayload = queue.reduce((acc: string[], item) => {
-            acc.push(item.id.toString());
+        const queuePayload = queue.reduce((acc: QueueReorderItemApi[], item) => {
+            acc.push({
+                game_id: item.id.toString(),
+                user_id: user.id,
+            });
             return acc;
         }, []);
 
@@ -138,8 +142,6 @@ export default function GameQueueManagementPage() {
 
     const handleRemoveFromQueue = (queueItemId: number) => {
         const newQueue = queue.filter(item => item.id !== queueItemId);
-        console.log('Removing queue item with id:', queueItemId);
-        console.log('New queue after removal:', newQueue);
         setQueue(newQueue);
         setAreUnsavedChanges(true);
     };
@@ -249,7 +251,7 @@ export default function GameQueueManagementPage() {
                                                 <h3 className="text-lg font-bold text-gray-900">
                                                     {item.name}
                                                 </h3>
-                                                <h2>{item.lengthInHours.toFixed(1)} minutes</h2>
+                                                <h2>{item.lengthInHours.toFixed(1)} Hours</h2>
                                             </div>
 
                                             <p className="text-sm text-gray-600 mt-1">

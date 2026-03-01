@@ -1,4 +1,4 @@
-import { ListQueueResponse, QueueItem } from '@/types/BoardGame';
+import { ListQueueResponse, QueueReorderItemApi } from '@/types/Queue';
 import { apiCall } from './baseApi';
 
 
@@ -10,22 +10,19 @@ export const queueAPI = {
         return res.items;
     },
 
-    async addToQueue(
-        item: {
-            game_id: string;
-            game_instance_id: string;
-        },
-        token: string
-    ) {
-        return apiCall<QueueItem>('/game-queue', {
-            method: 'POST',
-            body: JSON.stringify(item),
-            token,
-        });
-    },
+    // async addToQueue(
+    //     item: QueueReorderItemApi,
+    //     token: string
+    // ) {
+    //     return apiCall<QueueItem>('/game-queue', {
+    //         method: 'POST',
+    //         body: JSON.stringify(item),
+    //         token,
+    //     });
+    // },
 
     async reorderQueue(
-        items: string[],
+        items: QueueReorderItemApi[],
         token: string
     ) {
         return apiCall<{ message: string }>('/game-queue/reorder', {
