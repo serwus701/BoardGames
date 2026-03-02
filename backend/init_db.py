@@ -190,13 +190,13 @@ def init_sample_data():
             date_time=now + timedelta(days=7),
             location="stalowo",
             organizer_id=user1.id,
-            estimated_length_in_minutes="120",
+            estimated_length_in_minutes=120,
         )
         event2 = Event(
             date_time=now + timedelta(days=14),
             location="Dokerska",
             organizer_id=user2.id,
-            estimated_length_in_minutes="180",
+            estimated_length_in_minutes=180,
         )
 
         db.add_all([event1, event2])

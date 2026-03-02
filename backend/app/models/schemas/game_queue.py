@@ -15,7 +15,7 @@ class GameQueueResponse(BaseModel):
 
 
 class BaseQueueItem(BaseModel):
-    game_id: str
+    game_id: int
     user_id: int
 
 
@@ -24,4 +24,4 @@ class NewQueuePayload(BaseModel):
 
 
 class DeleteQueuePayload(BaseModel):
-    items: list[str]
+    items: list[int]

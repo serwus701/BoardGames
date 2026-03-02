@@ -9,7 +9,7 @@ from app.models.schemas.game_queue import BaseQueueItem
 
 
 class QueueNode:
-    def __init__(self, game_id: str, user_id: int):
+    def __init__(self, game_id: int, user_id: int):
         self.game_id = game_id
         self.added_by = user_id
         self.next: Optional['QueueNode'] = None
@@ -51,7 +51,7 @@ class PersistentQueueManager:
                 for item_dict in data:
                     self._add_logic(item_dict['game_id'], item_dict['user_id'])
 
-    def _add_logic(self, game_id: str, user_id: int):
+    def _add_logic(self, game_id: int, user_id: int):
         new_node = QueueNode(game_id, user_id)
         if not self.head:
             self.head = self.tail = new_node
@@ -65,13 +65,13 @@ class PersistentQueueManager:
         """Snapshots current state before an operation."""
         self.history.append(self._get_list_snapshot())
 
-    async def add(self, game_id: str, user_id: int):
+    async def add(self, game_id: int, user_id: int):
         async with self.lock:
             await self.record_history()
             self._add_logic(game_id, user_id)
             await self._save_to_disk()
 
-    async def remove(self, game_id: str) -> bool:
+    async def remove(self, game_id: int) -> bool:
         async with self.lock:
             await self.record_history()
             curr = self.head
@@ -91,7 +91,7 @@ class PersistentQueueManager:
                 curr = curr.next
             return False
 
-    async def remove_batch(self, game_ids: list[str]) -> bool:
+    async def remove_batch(self, game_ids: list[int]) -> bool:
         async with self.lock:
             await self.record_history()
 

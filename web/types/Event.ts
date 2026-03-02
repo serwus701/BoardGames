@@ -6,7 +6,7 @@ export interface Event {
     date_time: string;
     location: string;
     organizer: User;
-    estimated_length_in_minutes?: string;
+    estimated_length_in_minutes?: number;
     selected_games?: BoardGame[];
     registered_players?: User[];
     created_at?: string;

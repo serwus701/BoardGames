@@ -1,6 +1,5 @@
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -28,7 +27,7 @@ async def list_queue(
     db_games = db.query(BoardGame).filter(BoardGame.id.in_(ordered_game_ids)).all()
     db_users = db.query(User).filter(User.id.in_(unique_user_ids)).all()
 
-    db_games_map = {str(game.id): game for game in db_games}
+    db_games_map = {game.id: game for game in db_games}
     db_users_map = {user.id: user for user in db_users}
 
     response_items = []
@@ -49,7 +48,7 @@ async def list_queue(
     return GameQueueResponse(items=response_items)
 
 @router.post("", status_code=201)
-async def add_to_queue(game_id: str, current_user: User = Depends(get_current_user)):
+async def add_to_queue(game_id: int, current_user: User = Depends(get_current_user)):
     await manager.add(game_id, current_user.id)
     return {"status": "added"}
 
@@ -86,7 +85,7 @@ async def remove_from_queue(payload: DeleteQueuePayload, current_user: User = De
 
 
 @router.delete("/{item}", status_code=204)
-async def remove_from_queue(item: str, current_user: User = Depends(get_current_user)):
+async def remove_from_queue(item: int, current_user: User = Depends(get_current_user)):
     if current_user.role != "head-admin":
         raise HTTPException(status_code=403, detail="Admin only")
 

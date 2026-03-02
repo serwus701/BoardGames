@@ -8,12 +8,12 @@ from app.models.schemas.game import BoardGameResponse
 class EventBase(BaseModel):
     date_time: datetime
     location: str
-    estimated_length_in_minutes: str
+    estimated_length_in_minutes: int
 
 class EventUpdate(BaseModel):
     date_time: Optional[datetime] = None
     location: Optional[str] = None
-    estimated_length_in_minutes: Optional[str] = None
+    estimated_length_in_minutes: Optional[int] = None
     selected_games: Optional[List[int]] = None
 
 

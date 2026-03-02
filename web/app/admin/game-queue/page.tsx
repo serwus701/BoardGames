@@ -125,8 +125,8 @@ export default function GameQueueManagementPage() {
 
         const queuePayload = queue.reduce((acc: QueueReorderItemApi[], item) => {
             acc.push({
-                game_id: item.id.toString(),
-                user_id: user.id,
+                game_id: item.id,
+                user_id: parseInt(user.id, 10),
             });
             return acc;
         }, []);
