@@ -112,8 +112,8 @@ export default function CreateEventPage() {
         try {
             setIsLoading(true);
 
-            const estimatedMinutes = formData.estimated_length_in_hours
-                ? String(parseFloat(formData.estimated_length_in_hours) * 60)
+            const estimatedMinutes = parseInt(formData.estimated_length_in_hours, 10)
+                ? parseFloat(formData.estimated_length_in_hours) * 60
                 : undefined;
 
             const autoAssignedGames = limitedQueueItems

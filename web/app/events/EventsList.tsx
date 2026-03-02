@@ -182,7 +182,7 @@ export const EventsList = (props: EventsListProps) => {
                                         <div>
                                             <p className="text-sm text-gray-500">Duration</p>
                                             <p className="font-semibold">
-                                                {formatDuration(Number.parseInt(event.estimated_length_in_minutes, 10))}
+                                                {formatDuration(event.estimated_length_in_minutes)}
                                             </p>
                                         </div>
                                     </div>

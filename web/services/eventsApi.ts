@@ -15,7 +15,7 @@ export const eventsAPI = {
             date_time: string;
             location: string;
             organizer_id: string;
-            estimated_length_in_minutes?: string;
+            estimated_length_in_minutes?: number;
             selected_games?: number[];
         },
         token: string

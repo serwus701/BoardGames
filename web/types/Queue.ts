@@ -15,8 +15,8 @@ export interface ListQueueResponse {
 }
 
 export interface QueueReorderItemApi {
-    game_id: string;
-    user_id: string;
+    game_id: number;
+    user_id: number;
 }
 
 

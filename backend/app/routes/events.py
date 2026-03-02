@@ -76,7 +76,7 @@ async def create_event(
         limit = int(event_data.estimated_length_in_minutes)
 
         for game_id in game_ids:
-            duration = game_map.get(int(game_id))
+            duration = game_map.get(game_id)
             if not duration:
                 continue
 
@@ -167,10 +167,10 @@ async def update_event(
         event.games = new_games
 
         for game_id in to_add:
-            await queue_manager.remove(str(game_id))
+            await queue_manager.remove(game_id)
 
         for game_id in to_remove:
-            await queue_manager.add(str(game_id))
+            await queue_manager.add(game_id)
 
     db.commit()
     db.refresh(event)
@@ -327,4 +327,4 @@ async def remove_event_game(
 
     db.delete(game)
     db.commit()
-    await queue_manager.add(str(game_id))
+    await queue_manager.add(game_id)

@@ -1,4 +1,3 @@
-import { CustomGame, SharedGameInstance } from '@/types';
 import { apiCall } from './baseApi';
 import { ApiBoardGame, BoardGame } from '@/types/BoardGame';
 

@@ -1,12 +1,11 @@
-from datetime import datetime, timedelta, UTC
+import os
+import xml.etree.ElementTree as ET
+from typing import List
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import func, cast, String, not_
+from sqlalchemy import not_
 from sqlalchemy.orm import Session, joinedload
-from typing import List
-
-from sqlalchemy.sql.elements import or_, and_
 
 from app.database import get_db
 from app.models import BoardGame, Event, EventRegistration
@@ -17,9 +16,6 @@ from app.models.schemas.game import (
 )
 from app.services.game_queue_service import manager as queue_manager
 from app.utils.auth import get_current_user
-
-import xml.etree.ElementTree as ET
-import os
 
 router = APIRouter(prefix="/games", tags=["games"])
 
@@ -50,7 +46,7 @@ async def list_recommended_games(
     registered_user_ids = {reg.user_id for reg in event.registrations}
 
     time_used = sum(game.length_in_minutes or 0 for game in event.games)
-    time_remaining = int(event.estimated_length_in_minutes) - time_used
+    time_remaining = event.estimated_length_in_minutes - time_used
     assigned_game_ids = [game.id for game in event.games]
 
     # --- 1. Base Query: Get candidates based on Queue/Assignment ---

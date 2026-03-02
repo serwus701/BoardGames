@@ -29,7 +29,7 @@ export default function EventEditModal({
     useEffect(() => {
         if (event) {
             const hoursFromMinutes = event.estimated_length_in_minutes
-                ? String(Number.parseInt(event.estimated_length_in_minutes, 10) / 60)
+                ? String(event.estimated_length_in_minutes / 60)
                 : '';
 
             setFormData({
@@ -56,7 +56,7 @@ export default function EventEditModal({
         };
 
         if (formData.estimated_length_in_hours) {
-            dataToSave.estimated_length_in_minutes = String(parseFloat(formData.estimated_length_in_hours) * 60);
+            dataToSave.estimated_length_in_minutes = parseFloat(formData.estimated_length_in_hours) * 60;
         }
 
         await onSave(dataToSave);
